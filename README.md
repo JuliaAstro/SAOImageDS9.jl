@@ -13,8 +13,8 @@ example, on Ubuntu, just do:
 
     sudo apt-get install saods9
 
-Optionally, you may want to install `IPC.jl` package to benefit from shared
-memory.  For now, this package at https://github.com/emmt/IPC.jl
+Optionally, you may want to install (IPC.jl)[https://github.com/emmt/IPC.jl]
+package to benefit from shared memory.
 
 In your Julia code/session, it is sufficient to do:
 
