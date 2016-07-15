@@ -102,7 +102,7 @@ get_integer(args...) = parse(Int, get_text(args...))
 
 get_float(args...) = parse(Float64, get_text(args...))
 
-set(args...; data::Union{Void,AbstractArray}=nothing) =
+set(args...; data::Union{Void,DenseArray}=nothing) =
     (xpa_set(_DS9, args...; xpa=_XPA, check=true, data=data); nothing)
 
 about() = get_text("about")
@@ -279,7 +279,7 @@ doc"""
 
 set contents of current DS9 frame to be array `arr`.
 """
-function set_data{T<:PixelTypes,N}(arr::AbstractArray{T,N};
+function set_data{T<:PixelTypes,N}(arr::DenseArray{T,N};
                                    endian::Symbol=:native,
                                    mask::Bool=false,
                                    new::Bool=false)
@@ -298,18 +298,18 @@ if HAVE_IPC
     end
 end
 
-function arraydescriptor{T,N}(arr::AbstractArray{T,N}; endian::Symbol=:native)
+function arraydescriptor{T,N}(arr::DenseArray{T,N}; endian::Symbol=:native)
     error("only 2D and 3D arrays are supported")
 end
 
-function arraydescriptor{T}(arr::AbstractArray{T,2}; endian::Symbol=:native)
+function arraydescriptor{T}(arr::DenseArray{T,2}; endian::Symbol=:native)
     bp = bitpixof(T)
     bp != 0 || error("unsupported data type")
     string("[xdim=",size(arr,1),",ydim=",size(arr,2),
            ",bitpix=",bp,",endian=",endian,"]")
 end
 
-function arraydescriptor{T}(arr::AbstractArray{T,3}; endian::Symbol=:native)
+function arraydescriptor{T}(arr::DenseArray{T,3}; endian::Symbol=:native)
     bp = bitpixof(T)
     bp != 0 || error("unsupported data type")
     string("[xdim=",size(arr,1),",ydim=",size(arr,2),",zdim=",size(arr,3),
@@ -364,7 +364,7 @@ yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or
 a type.  A value of 0 is returned if `x` is not of a supported type.
 """
 function bitpixof end
-bitpixof{T,N}(::AbstractArray{T,N}) = bitpixof(T)
+bitpixof{T,N}(::DenseArray{T,N}) = bitpixof(T)
 for T in PIXEL_TYPES
     bp = (T <: Integer ? 8 : -8)*sizeof(T)
     @eval bitpixof(::Type{$T}) = $bp

@@ -209,16 +209,17 @@ The following keywords are accepted:
   in the list of answers.
 
 """
-function xpa_set{T,N}(apt::AbstractString, params...;
-                      data::Union{DenseArray{T,N},Void}=nothing,
-                      xpa::Handle=NullHandle, mode::AbstractString="",
-                      nmax::Integer=1, check::Bool=false)
+function xpa_set(apt::AbstractString, params...;
+                 data::Union{DenseArray,Void}=nothing,
+                 xpa::Handle=NullHandle, mode::AbstractString="",
+                 nmax::Integer=1, check::Bool=false)
     buf::Ptr{Void}
     len::Int
     if isa(data, Void)
         buf = C_NULL
         len = 0
     else
+        @assert isbits(eltype(data))
         buf = pointer(data)
         len = sizeof(data)
     end
