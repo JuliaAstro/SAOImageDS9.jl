@@ -7,7 +7,7 @@ viewer [SAOImage/DS9](http://ds9.si.edu/site/Home.html) via the
 **Caveat:** This package is quite young and many utility methods (not
   documented here) are subject to change until I find a consistent naming
   convention.  Documented methods like `DS9.set`, `DS9.set_data`,
-  `DS9.get_bytes`, `DS9.get_data`, *etc.* will however remain so you can count
+  `DS9.get_bytes`, `DS9.get_data`, *etc.* will however remain, so you can count
   on them.
 
 

@@ -102,6 +102,13 @@ get_integer(args...) = parse(Int, get_text(args...))
 
 get_float(args...) = parse(Float64, get_text(args...))
 
+get_integers(args...) = _parse_as_tuple(Int, get_words(args...))
+
+get_floats(args...) = _parse_as_tuple(Float64, get_words(args...))
+
+_parse_as_tuple{T}(::Type{T}, list) =
+    ntuple(i->parse(T, list[i]), length(list))
+
 set(args...; data::Union{Void,DenseArray}=nothing) =
     (xpa_set(_DS9, args...; xpa=_XPA, check=true, data=data); nothing)
 
@@ -336,11 +343,7 @@ for field in ("bitpix", "width", "height", "depth")
     end
 end
 
-function get_size()
-    lst = get_words("fits", "size")
-    ntuple(i -> parse(Int, lst[i]), length(lst))
-end
-
+get_size() = get_integers("fits size")
 
 function trueorfalse(str::AbstractString)
     str == "true"  ? true  :
