@@ -14,15 +14,16 @@ module DS9
 warning(msg...) = print_with_color(:yellow, STDERR, "WARNING: ", msg..., "\n")
 
 using XPA
-const HAVE_IPC = try
-    using IPC
-    true
-catch e
-    warning("module IPC not found, will not use shared memory")
-    false
-end
+const USE_IPC = false
+#const USE_IPC = try
+#    using IPC
+#    true
+#catch e
+#    warning("module IPC not found, will not use shared memory")
+#    false
+#end
 
-typealias PixelTypes Union{UInt8,Int16,Int32,Int64,Float32,Float64}
+const PixelTypes = Union{UInt8,Int16,Int32,Int64,Float32,Float64}
 const PIXEL_TYPES = (UInt8, Int16, Int32, Int64, Float32, Float64)
 
 _match(pat::AbstractString, str::AbstractString) = (pat == str)
@@ -58,13 +59,13 @@ To retrieve the name of the current DS9 access point, do:
 
    DS9.connection() -> currentname
 """
-function connect(apt::AbstractString="DS9:*")
+function connect(apt::AbstractString = "DS9:*")
     global _DS9, _XPA
-    if _XPA == XPA.NullHandle
+    if _XPA._ptr == C_NULL
         _XPA = xpa_open()
     end
     cnt = 0
-    for (data, name, mesg) in xpa_get(apt, "version"; xpa=_XPA, nmax=-1)
+    for (data, name, mesg) in xpa_get(_XPA, apt, "version"; nmax=-1)
         length(mesg) > 0 && continue # ignore errors
         cnt += 1
         if cnt == 1
@@ -89,14 +90,14 @@ connection() = _DS9
 # establish the first connection
 connect();
 
-get_bytes(args...) = xpa_get_bytes(_DS9, args...; xpa=_XPA)
+get_bytes(args...) = xpa_get_bytes(_XPA, _DS9, args...)
 
-get_text(args...) = chomp(xpa_get_text(_DS9, args...; xpa=_XPA))
+get_text(args...) = chomp(xpa_get_text(_XPA, _DS9, args...))
 
 get_lines(args...; keep::Bool=false) =
-    xpa_get_lines(_DS9, args...; xpa=_XPA, keep=keep)
+    xpa_get_lines(_XPA, _DS9, args...; keep=keep)
 
-get_words(args...) = xpa_get_words(_DS9, args...; xpa=_XPA)
+get_words(args...) = xpa_get_words(_XPA, _DS9, args...)
 
 get_integer(args...) = parse(Int, get_text(args...))
 
@@ -110,7 +111,7 @@ _parse_as_tuple{T}(::Type{T}, list) =
     ntuple(i->parse(T, list[i]), length(list))
 
 set(args...; data::Union{Void,DenseArray}=nothing) =
-    (xpa_set(_DS9, args...; xpa=_XPA, check=true, data=data); nothing)
+    (xpa_set(_XPA, _DS9, args...; check=true, data=data); nothing)
 
 about() = get_text("about")
 
@@ -180,7 +181,7 @@ guiwidth
 @doc @doc(guiwidth) guiheight
 
 for s in ("width", "height")
-    f = symbol(:gui, s)
+    f = Symbol(:gui, s)
     @eval begin
         $f() = get_integer($s)
         function $f(value::Integer)
@@ -290,14 +291,14 @@ function set_data{T<:PixelTypes,N}(arr::DenseArray{T,N};
                                    endian::Symbol=:native,
                                    mask::Bool=false,
                                    new::Bool=false)
-    args = Array(ASCIIString, 0)
+    args = Array{ASCIIString}(0)
     push!(args, "array")
     if new; push!(args, "new"); end
     if mask; push!(args, "mask"); end
     set(args..., arraydescriptor(arr; endian=endian); data=arr)
 end
 
-if HAVE_IPC
+@static if USE_IPC
     function set_data{T<:PixelTypes,N}(arr::ShmArray{T,N};
                                        endian::Symbol=:native)
         set("shm", "array", "shmid", shmid(arr),
@@ -336,7 +337,7 @@ The following calls retrieve parameters of data in current DS9 frame:
 function get_bitpix end
 
 for field in ("bitpix", "width", "height", "depth")
-    func = symbol(:get_,field)
+    func = Symbol(:get_,field)
     @eval function $func()
         str = get_text("fits", $field)
         length(str) > 0 ? parse(Int, str) : 0
