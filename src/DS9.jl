@@ -325,26 +325,41 @@ function arraydescriptor{T}(arr::DenseArray{T,3}; endian::Symbol=:native)
 end
 
 """
-The following calls retrieve parameters of data in current DS9 frame:
 
-    DS9.get_bitpix() -> bitpix
-    DS9.get_width()  -> width
-    DS9.get_height() -> height
-    DS9.get_depth()  -> depth
-    DS9.get_size()   -> dims
-    DS9.get_size(n)  -> nth_dims
+The following calls retrieve parameters of the array displayed in the
+current DS9 frame:
+
+    DS9.get_bitpix() -> bits per pixel
+    DS9.get_width()  -> width of array
+    DS9.get_height() -> height of array
+    DS9.get_depth()  -> depth of array
+    DS9.get_size()   -> all dimensions (2 or 3) of array
+    DS9.get_size(n)  -> n-th dimension of array
+
+The dimensions are ordered as `width`, `height` and `depth`.
+
 """
-function get_bitpix end
+function get_size()
+    width, height, depth = get_width(), get_height(), get_depth()
+    return depth > 1 ? (width, height, depth) : (width, height)
+end
+
+get_size(i::Integer) =
+    i == 1 ? get_width() :
+    i == 2 ? get_height() :
+    i == 3 ? get_depth() :
+    i > 3 ? 1 : throw(BoundsError("out of bounds dimension index"))
 
 for field in ("bitpix", "width", "height", "depth")
     func = Symbol(:get_,field)
-    @eval function $func()
-        str = get_text("fits", $field)
-        length(str) > 0 ? parse(Int, str) : 0
+    @eval begin
+        function $func()
+            str = get_text("fits", $field)
+            length(str) > 0 ? parse(Int, str) : 0
+        end
+        @doc @doc(get_size) $func
     end
 end
-
-get_size() = get_integers("fits size")
 
 function trueorfalse(str::AbstractString)
     str == "true"  ? true  :
