@@ -49,7 +49,7 @@ statements will set the current zoom to be equal to 3.7:
     DS9.set("zoom to 3.7")
 
 where the last line shows the string which is effectively sent to DS9 via the
-`xpa_set` method.
+`XPA.set` method.
 
 The following methods can be used to issue a **get** request to the current DS9
 access point depending on the expected type of result:

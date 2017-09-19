@@ -7,7 +7,7 @@
 #------------------------------------------------------------------------------
 #
 # This file is part of DS9.jl released under the MIT "expat" license.
-# Copyright (C) 2016, Éric Thiébaut (https://github.com/emmt).
+# Copyright (C) 2016-2017, Éric Thiébaut (https://github.com/emmt).
 #
 module DS9
 
@@ -34,7 +34,7 @@ function search(;name::Union{Void,AbstractString,Regex}=nothing,
                 user::Union{Void,AbstractString,Regex}=ENV["USER"],
                 access::Integer=0)
     access = UInt(access) & (XPA.GET|XPA.SET|XPA.INFO)
-    for apt in xpa_list()
+    for apt in XPA.list()
         apt.class == "DS9" || continue
         (apt.access & access) == access || continue
         _match(name, apt.name) || continue
@@ -46,7 +46,7 @@ end
 
 # Private variables to store current DS9 access point and XPA connection.
 _DS9 = ""
-_XPA = XPA.NullHandle
+_XPA = XPA.TEMPORARY
 
 """
    DS9.connect(apt="DS9:*") -> ident
@@ -61,11 +61,11 @@ To retrieve the name of the current DS9 access point, do:
 """
 function connect(apt::AbstractString = "DS9:*")
     global _DS9, _XPA
-    if _XPA._ptr == C_NULL
-        _XPA = xpa_open()
+    if ! XPA.isopen(_XPA)
+        _XPA = XPA.Client()
     end
     cnt = 0
-    for (data, name, mesg) in xpa_get(_XPA, apt, "version"; nmax=-1)
+    for (data, name, mesg) in XPA.get(_XPA, apt, "version"; nmax=-1)
         length(mesg) > 0 && continue # ignore errors
         cnt += 1
         if cnt == 1
@@ -90,14 +90,14 @@ connection() = _DS9
 # establish the first connection
 connect();
 
-get_bytes(args...) = xpa_get_bytes(_XPA, _DS9, args...)
+get_bytes(args...) = XPA.get_bytes(_XPA, _DS9, args...)
 
-get_text(args...) = chomp(xpa_get_text(_XPA, _DS9, args...))
+get_text(args...) = chomp(XPA.get_text(_XPA, _DS9, args...))
 
 get_lines(args...; keep::Bool=false) =
-    xpa_get_lines(_XPA, _DS9, args...; keep=keep)
+    XPA.get_lines(_XPA, _DS9, args...; keep=keep)
 
-get_words(args...) = xpa_get_words(_XPA, _DS9, args...)
+get_words(args...) = XPA.get_words(_XPA, _DS9, args...)
 
 get_integer(args...) = parse(Int, get_text(args...))
 
@@ -111,7 +111,7 @@ _parse_as_tuple{T}(::Type{T}, list) =
     ntuple(i->parse(T, list[i]), length(list))
 
 set(args...; data::Union{Void,DenseArray}=nothing) =
-    (xpa_set(_XPA, _DS9, args...; check=true, data=data); nothing)
+    (XPA.set(_XPA, _DS9, args...; check=true, data=data); nothing)
 
 about() = get_text("about")
 
