@@ -7,13 +7,15 @@
 #------------------------------------------------------------------------------
 #
 # This file is part of DS9.jl released under the MIT "expat" license.
-# Copyright (C) 2016-2017, Éric Thiébaut (https://github.com/emmt).
+# Copyright (C) 2016-2019, Éric Thiébaut (https://github.com/emmt).
 #
+
 module DS9
 
-warning(msg...) = print_with_color(:yellow, STDERR, "WARNING: ", msg..., "\n")
+warning(msg...) = print_with_color(:yellow, stderr, "WARNING: ", msg..., "\n")
 
 using XPA
+
 const USE_IPC = false
 #const USE_IPC = try
 #    using IPC
@@ -27,11 +29,11 @@ const PixelTypes = Union{UInt8,Int16,Int32,Int64,Float32,Float64}
 const PIXEL_TYPES = (UInt8, Int16, Int32, Int64, Float32, Float64)
 
 _match(pat::AbstractString, str::AbstractString) = (pat == str)
-_match(::Void, str::AbstractString) = true
+_match(::Nothing, str::AbstractString) = true
 _match(pat::Regex, str::AbstractString) = is_match(pat, str)
 
-function search(;name::Union{Void,AbstractString,Regex}=nothing,
-                user::Union{Void,AbstractString,Regex}=ENV["USER"],
+function search(;name::Union{Nothing,AbstractString,Regex}=nothing,
+                user::Union{Nothing,AbstractString,Regex}=ENV["USER"],
                 access::Integer=0)
     access = UInt(access) & (XPA.GET|XPA.SET|XPA.INFO)
     for apt in XPA.list()
@@ -88,14 +90,14 @@ connection() = _DS9
 @doc @doc(connect) connection
 
 # establish the first connection
-connect();
+#connect();
 
 get_bytes(args...) = XPA.get_bytes(_XPA, _DS9, args...)
 
 get_text(args...) = chomp(XPA.get_text(_XPA, _DS9, args...))
 
-get_lines(args...; keep::Bool=false) =
-    XPA.get_lines(_XPA, _DS9, args...; keep=keep)
+get_lines(args...; keepempty::Bool=false) =
+    XPA.get_lines(_XPA, _DS9, args...; keepempty=keepempty)
 
 get_words(args...) = XPA.get_words(_XPA, _DS9, args...)
 
@@ -107,10 +109,10 @@ get_integers(args...) = _parse_as_tuple(Int, get_words(args...))
 
 get_floats(args...) = _parse_as_tuple(Float64, get_words(args...))
 
-_parse_as_tuple{T}(::Type{T}, list) =
+_parse_as_tuple(::Type{T}, list) where {T} =
     ntuple(i->parse(T, list[i]), length(list))
 
-set(args...; data::Union{Void,DenseArray}=nothing) =
+set(args...; data::Union{Nothing,DenseArray}=nothing) =
     (XPA.set(_XPA, _DS9, args...; check=true, data=data); nothing)
 
 about() = get_text("about")
@@ -264,7 +266,7 @@ setframe(args...) = set("frame", args...)
 firstframe() = setframe("first")
 lastframe() = setframe("last")
 
-doc"""
+"""
 # get DS9 frame data
 
     DS9.get_data(;endian=:native) -> arr
@@ -275,23 +277,23 @@ frame is empty).
 """
 function get_data(; endian::Union{Symbol,AbstractString}=:native)
     typ = bitpix_to_type(get_bitpix())
-    if typ === Void; return nothing; end
+    if typ === Nothing; return nothing; end
     siz = get_size()
     buf = get_bytes("array", byteorder(endian))
     reshape(reinterpret(typ, buf), siz)
 end
 
-doc"""
+"""
 
     DS9.set_data(arr; mask=false, new=false, endian=:native)
 
 set contents of current DS9 frame to be array `arr`.
 """
-function set_data{T<:PixelTypes,N}(arr::DenseArray{T,N};
-                                   endian::Symbol=:native,
-                                   mask::Bool=false,
-                                   new::Bool=false)
-    args = Array{ASCIIString}(0)
+function set_data(arr::DenseArray{T,N};
+                  endian::Symbol=:native,
+                  mask::Bool=false,
+                  new::Bool=false) where {T<:PixelTypes,N}
+    args = String[]
     push!(args, "array")
     if new; push!(args, "new"); end
     if mask; push!(args, "mask"); end
@@ -299,25 +301,28 @@ function set_data{T<:PixelTypes,N}(arr::DenseArray{T,N};
 end
 
 @static if USE_IPC
-    function set_data{T<:PixelTypes,N}(arr::ShmArray{T,N};
-                                       endian::Symbol=:native)
+    function set_data(arr::ShmArray{T,N};
+                      endian::Symbol=:native) where {T<:PixelTypes,N}
         set("shm", "array", "shmid", shmid(arr),
             arraydescriptor(arr; endian=endian))
     end
 end
 
-function arraydescriptor{T,N}(arr::DenseArray{T,N}; endian::Symbol=:native)
+function arraydescriptor(arr::DenseArray{T,N};
+                         endian::Symbol=:native) where {T,N}
     error("only 2D and 3D arrays are supported")
 end
 
-function arraydescriptor{T}(arr::DenseArray{T,2}; endian::Symbol=:native)
+function arraydescriptor(arr::DenseArray{T,2};
+                         endian::Symbol=:native) where {T}
     bp = bitpixof(T)
     bp != 0 || error("unsupported data type")
     string("[xdim=",size(arr,1),",ydim=",size(arr,2),
            ",bitpix=",bp,",endian=",endian,"]")
 end
 
-function arraydescriptor{T}(arr::DenseArray{T,3}; endian::Symbol=:native)
+function arraydescriptor(arr::DenseArray{T,3};
+                         endian::Symbol=:native) where {T}
     bp = bitpixof(T)
     bp != 0 || error("unsupported data type")
     string("[xdim=",size(arr,1),",ydim=",size(arr,2),",zdim=",size(arr,3),
@@ -376,14 +381,14 @@ end
 yesorno(flag::Bool) = (flag ? "yes" : "no")
 trueorfalse(flag::Bool) = (flag ? "true" : "false")
 
-doc"""
+"""
     DS9.bitpixof(x)
 
 yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or
 a type.  A value of 0 is returned if `x` is not of a supported type.
 """
 function bitpixof end
-bitpixof{T,N}(::DenseArray{T,N}) = bitpixof(T)
+bitpixof(::DenseArray{T,N}) where {T,N} = bitpixof(T)
 for T in PIXEL_TYPES
     bp = (T <: Integer ? 8 : -8)*sizeof(T)
     @eval bitpixof(::Type{$T}) = $bp
@@ -398,9 +403,9 @@ bitpix_to_type(bitpix::Int) =
     bitpix ==  64 ? Int64   :
     bitpix == -32 ? Float32 :
     bitpix == -64 ? Float64 :
-    Void
+    Nothing
 bitpix_to_type(bitpix::Integer) = bitpix_to_type(Int(bitpix))
-bitpix_to_type(::Any) = Void
+bitpix_to_type(::Any) = Nothing
 
 function fetchint(str::AbstractString,
                   prefix::AbstractString="")
