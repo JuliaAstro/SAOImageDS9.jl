@@ -12,9 +12,10 @@
 
 module DS9
 
-warning(msg...) = print_with_color(:yellow, stderr, "WARNING: ", msg..., "\n")
-
 using XPA
+
+warning(msg...) = printstyled(stderr, "WARNING: ", msg..., "\n";
+                              color=:yellow)
 
 const USE_IPC = false
 #const USE_IPC = try
