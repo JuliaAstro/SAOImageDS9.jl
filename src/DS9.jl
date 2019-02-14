@@ -13,7 +13,7 @@
 module DS9
 
 using XPA
-using XPA: _join, Byte, TupleOf
+using XPA: _join, TupleOf
 using Base: ENV
 
 
