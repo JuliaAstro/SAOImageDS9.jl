@@ -5,30 +5,68 @@ viewer [SAOImage/DS9](http://ds9.si.edu/site/Home.html) via a
 [Julia interface to the XPA Messaging System](https://github.com/emmt/XPA.jl).
 
 
-## Prerequisites
+## Installation
 
-To use this package, **DS9** program and **XPA.jl** package must be installed
+To use this package, SAOImageDS9 program and XPA.jl package must be installed
 on your computer.  If this is not the case, they are available for different
 operating systems.  For example, on Ubuntu, just do:
 
-    sudo apt-get install saods9 xpa-tools
+```sh
+sudo apt-get install saods9 xpa-tools
+```
 
-Optionally, you may want to install [IPC.jl](https://github.com/emmt/IPC.jl)
-package to benefit from shared memory.
+Then, to install DS9.jl package from Julia, just do:
+
+```julia
+using Pkg
+Pkg.clone("https://github.com/emmt/DS9.jl")
+```
+
+Don't be feared with the warning message about using deprecated `Pkg.clone`
+instead of `Pkg.add`, as of Julia 1.0,
+`Pkg.add("https://github.com/emmt/DS9.jl")` does not work in spite of what said
+the Julia documentation...
+
+See [XPA.jl site](https://github.com/emmt/XPA.jl) for instructions about how to
+install this package if the installation of DS9.jl fails to properly install
+thjis required package.
+
+To upgrade the DS9.jl package:
+
+```julia
+Pkg.update("DS9")
+```
+
+There is nothing to build.
+
+
+## Starting
 
 In your Julia code/session, it is sufficient to do:
 
-    import DS9
-
+```julia
+import DS9
+DS9.connect()
+```
 or:
 
-    using DS9
+```julia
+using DS9
+DS9.connect()
+```
 
 which are equivalent as `DS9.jl` does not export any symbols.  Thus all
 commands are prefixed by `DS9.`, if you prefer a different prefix, you can do
 something like:
 
-    const ds9 = DS9
+```julia
+const ds9 = DS9
+```
+
+The `DS9.connect` call is needed to establish a connection to SAOImageDS9
+(which must be running).  With no arguments, `DS9.connect` chooses the first
+available server mathing `"DS9:*"`.  It is possible to specify an argument to
+`DS9.connect` to choose a given server.
 
 
 ## General syntax for the requests
@@ -36,7 +74,9 @@ something like:
 The general syntax to issue a **set** request to the current DS9 access point
 is:
 
-    DS9.set(args...; data=nothing)
+```julia
+DS9.set(args...; data=nothing)
+```
 
 where `args...` are any number of arguments which will be automatically
 converted in a string where the arguments are separated by spaces.  The keyword
@@ -44,9 +84,11 @@ converted in a string where the arguments are separated by spaces.  The keyword
 `nothing` (the default) or a Julia array.  For instance, the following 3
 statements will set the current zoom to be equal to 3.7:
 
-    DS9.set(:zoom,:to,3.7)
-    DS9.set("zoom to",3.7)
-    DS9.set("zoom to 3.7")
+```julia
+DS9.set(:zoom,:to,3.7)
+DS9.set("zoom to",3.7)
+DS9.set("zoom to 3.7")
+```
 
 where the last line shows the string which is effectively sent to DS9 via the
 `XPA.set` method.
@@ -54,22 +96,28 @@ where the last line shows the string which is effectively sent to DS9 via the
 The following methods can be used to issue a **get** request to the current DS9
 access point depending on the expected type of result:
 
-    DS9.get_bytes(args...)             -> buf
-    DS9.get_text(args...)              -> str
-    DS9.get_lines(args...; keep=false) -> arr
-    DS9.get_words(args...)             -> arr
+```julia
+DS9.get(Vector{UInt8}, args...)         -> buf
+DS9.get(String, args...)                -> str
+DS9.get(Vector{String}, args...;
+        delim=isspace, keepempty=false) -> arr
+DS9.get(Tuple{Vararg{String}}, args...;
+        delim=isspace, keepempty=false) -> tup
+```
 
 where `args...` are treated as for the `DS9.set` method.  The returned values
 are respectively a vector of bytes, a single string (with the last end-of-line
 removed if any), an array of strings (one for each line of the result and empty
-line removed unless keyword `keep` is set `true`), or an array of (non-empty)
+line removed unless keyword `keepempty` is set `true`), or an array of (non-empty)
 words.
 
 If a single scalar integer or floating point is expected, two methods are
 available:
 
-    DS9.get_integer(args...)    -> scalar
-    DS9.get_float(args...)      -> scalar
+```julia
+DS9.get(Int, args...)    -> scalar
+DS9.get(Float, args...)  -> scalar
+```
 
 which return respectively an `Int` and a `Float64`.
 
@@ -78,26 +126,32 @@ which return respectively an `Int` and a `Float64`.
 
 To display an image in DS9, do:
 
-    DS9.set_data(arr)
+```julia
+DS9.set(arr)
+```
 
-where `arr` is a 2D or 3D Julia array.  If `arr` is a shared memory array
-(provided by the [IPC.jl](https://github.com/emmt/IPC.jl) package), the shared
-memory segment is directly used by DS9; otherwise, the contents of the array is
-sent to DS9.  DS9 will display the data in the currently selected frame with
-the current scale parameters, zoom, orientation, rotation, etc.
+where `arr` is a 2D or 3D Julia array.  DS9 will display the data in the
+currently selected frame with the current scale parameters, zoom, orientation,
+rotation, etc.
 
 To retrieve the array displayed by the current DS9 frame, do:
 
-    arr = DS9.get_data();
+```julia
+arr = DS9.get(Array);
+```
+
+In both cases, keyword `order` can be used to specify the byte ordering.
 
 
 ## Connection to a specific DS9 instance
 
-By default, all requests are sent to the first DS9 instance found by the XPA
-name server.  To send further requests to a specific DS9 instance, you may
-do:
+When `DS9.connect()` is called without any argument, all subsequent requests
+will be sent to the first DS9 instance found by the XPA name server.  To send
+further requests to a specific DS9 instance, you may do:
 
-    DS9.connect(apt) -> ident
+```julia
+DS9.connect(apt) -> ident
+```
 
 where `apt` is a string identifying a specific XPA access point.  The returned
 value is the fully qualified identifier of the access point, it has the form
@@ -111,17 +165,20 @@ description.
 
 To retrieve the identifier of the current access point to DS9, you may call:
 
-    DS9.connection()
+```julia
+DS9.accesspoint()
+```
 
 Remember that all requests are sent to a given access point, but you may switch
 between DS9 instances.  For instance:
 
-    apt1 = DS9.connection()              # retrieve current access point
-    apt2 = DS9.connect("DS9:some_name")  # second access point
-    DS9.set_data(arr)                    # send an image to apt2
-    DS9.connect(apt1);                   # switch to apt1
-    DS9.zoom_to(1.4)                     # set zoom in apt1
-    ...
+```julia
+apt1 = DS9.accesspoint()             # retrieve current access point
+apt2 = DS9.connect("DS9:some_name")  # second access point
+DS9.set(arr)                         # send an image to apt2
+DS9.connect(apt1);                   # switch to apt1
+DS9.set("zoom to", 1.4)              # set zoom in apt1
+```
 
 When `DS9.jl` package is imported, it automatically connects to the first
 access point matching `"DS9.*"` with a warning if no access points, or if more
