@@ -147,6 +147,10 @@ yields the contents of current DS9 frame as an array (or as `nothing` if the
 frame is empty). Keyword `endian` can be used to specify the byte order of the
 received values (see [`DS9.byte_order`](@ref).
 
+To retrieve the version of the SAOImageDS9 program:
+
+    DS9.get(VersionNumber)
+
 See also [`DS9.connect`](@ref), [`DS9.set`](@ref) and [`XPA.get`](@ref).
 
 """
@@ -230,6 +234,13 @@ function get(::Type{Array}; endian::Union{Symbol,AbstractString}=:native)
     if T === Nothing; return nothing; end
     dims = get(TupleOf{Int}, "fits size")
     return get(Array{T}, dims, "array", byte_order(endian))
+end
+
+function get(::Type{VersionNumber})
+    str = get(String, "version")
+    m = match(r"^ds9 +([.0-9]+[a-z]*)\s*$", str)
+    m === nothing && error("unknown version number in \"$str\"")
+    return VersionNumber(m.captures[1])
 end
 
 """
