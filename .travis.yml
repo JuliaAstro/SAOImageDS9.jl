@@ -10,9 +10,10 @@ julia:
   - 1.1
   - nightly
 
-#matrix:
-#  allow_failures:
-#    - os: osx
+matrix:
+  allow_failures:
+    - os: osx
+    - julia: nightly
 
 notifications:
   email: false
@@ -21,7 +22,9 @@ notifications:
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 #  - julia --check-bounds=yes -e 'if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end; Pkg.clone(pwd()); Pkg.build("DS9"); Pkg.test("DS9"; coverage=true)'
-  - julia --check-bounds=yes -e 'if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end; Pkg.clone(pwd());'
+  - julia --check-bounds=yes -e 'if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
+                                 Pkg.clone("https://github.com/emmt/XPA.jl");
+                                 Pkg.clone(pwd());'
 
 after_success:
   - julia --project=coverage/ -e 'if VERSION >= v"0.7"; using Pkg; Pkg.instantiate(); end'
@@ -34,6 +37,7 @@ jobs:
       os: linux
       script:
         - julia --project=docs/ -e 'using Pkg;
+                                    Pkg.clone("https://github.com/emmt/XPA.jl");
                                     Pkg.develop(PackageSpec(path=pwd()));
                                     Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
