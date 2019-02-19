@@ -5,10 +5,10 @@ os:
 # - osx
 
 julia:
-# - 0.7
+  - 0.7
   - 1.0
-# - 1.1
-# - nightly
+  - 1.1
+  - nightly
 
 matrix:
   allow_failures:
@@ -25,9 +25,11 @@ before_install:
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 #  - julia --check-bounds=yes -e 'if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end; Pkg.clone(pwd()); Pkg.build("DS9"); Pkg.test("DS9"; coverage=true)'
-  - julia --check-bounds=yes -e 'if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
+  - julia --check-bounds=yes -e 'run(`ds9`; wait=false);
+                                 if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
                                  Pkg.clone("https://github.com/emmt/XPA.jl");
-                                 Pkg.clone(pwd());'
+                                 Pkg.clone(pwd());
+                                 Pkg.test("DS9"; coverage=true)'
 
 after_success:
   - julia --project=coverage/ -e 'if VERSION >= v"0.7"; using Pkg; Pkg.instantiate(); end'
@@ -39,8 +41,7 @@ jobs:
       julia: 1.0
       os: linux
       script:
-        - julia --project=docs/ -e 'using Pkg;
-                                    Pkg.clone("https://github.com/emmt/XPA.jl");
+        - julia --project=docs/ -e 'Pkg.clone("https://github.com/emmt/XPA.jl");
                                     Pkg.develop(PackageSpec(path=pwd()));
                                     Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
