@@ -7,7 +7,7 @@ different operating systems.  For example, on Debian or Ubuntu-like Linux
 system, you can call `apt-get` from the command line:
 
 ```sh
-sudo apt-get install saods9 xpa-tools
+sudo apt-get install saods9 libxpa-dev
 ```
 
 To install the DS9.jl package, start Julia in interactive mode and do:
