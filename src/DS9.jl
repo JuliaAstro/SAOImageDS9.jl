@@ -1,7 +1,7 @@
 #
 # DS9.jl --
 #
-# Implement communication with SAOImage DS9 (http://ds9.si.edu) via the XPA
+# Implement communication with SAOImage/DS9 (http://ds9.si.edu) via the XPA
 # protocol.
 #
 #------------------------------------------------------------------------------
@@ -24,8 +24,8 @@ const PIXELTYPES = (UInt8, Int16, Int32, Int64, Float32, Float64)
 """
     DS9.connection()
 
-yields the XPA persistent client connection used to communicate with DS9
-server(s).
+yields the XPA persistent client connection used to communicate with
+SAOImage/DS9 server(s).
 
 See also [`DS9.accesspoint`](@ref), [`DS9.connect`](@ref) and
 [`XPA.Client`](@ref).
@@ -45,10 +45,10 @@ const _xpa = connection # private shortcut
 """
     DS9.accesspoint()
 
-yields the XPA access point which identifies the SAOImageDS9 server.  This
+yields the XPA access point which identifies the SAOImage/DS9 server.  This
 access point can be set by calling the [`DS9.connection`](@ref) method.  An
 empty string is returned if no access point has been chosen.  To automatically
-connect to SAOImageDS9 if not yet done, you can do:
+connect to SAOImage/DS9 if not yet done, you can do:
 
     if DS9.accesspoint() == ""; DS9.connect(); end
 
@@ -70,11 +70,12 @@ end
 """
     DS9.connect(apt="DS9:*") -> ident
 
-set the access point for further DS9 commands.  Argument `apt` identifies the
-XPA access point, it can be a template string like `"DS9:*"` which is the
-default value.  The returned value is the name of the access point.
+set the access point for further SAOImage/DS9 commands.  Argument `apt`
+identifies the XPA access point, it can be a template string like `"DS9:*"`
+which is the default value.  The returned value is the name of the access
+point.
 
-To retrieve the name of the current DS9 access point, call the
+To retrieve the name of the current SAOImage/DS9 access point, call the
 [`DS9.connection`](@ref) method.
 
 See also [`DS9.accesspoint`](@ref) and [`DS9.connection`](@ref).
@@ -92,11 +93,11 @@ function connect(apt::AbstractString = "DS9:*")
         end
     end
     if cnt > 1
-        _war("more than one matching DS9 server found, the first ",
+        _war("more than one matching SAOImage/DS9 server found, the first ",
              "one (\"", _ACCESSPOINT[], "\") was selected")
     elseif cnt == 0
         _ACCESSPOINT[] = ""
-        error("no matching DS9 server found")
+        error("no matching SAOImage/DS9 server found")
     end
     return _ACCESSPOINT[]
 end
@@ -110,9 +111,9 @@ _warn(args...) = printstyled(stderr, "WARNING: ", args..., "\n";
 """
     DS9.get([T, [dims,]] args...)
 
-sends a "get" request to the DS9 server.  The request is made of arguments
-`args...` converted into strings and merged with separating spaces.  An
-exception is thrown in case of error.
+sends a "get" request to the SAOImage/DS9 server.  The request is made of
+arguments `args...` converted into strings and merged with separating spaces.
+An exception is thrown in case of error.
 
 The returned value depends on the optional arguments `T` and `dims`:
 
@@ -143,11 +144,11 @@ As a special case:
 
     DS9.get(Array; endian=:native) -> arr
 
-yields the contents of current DS9 frame as an array (or as `nothing` if the
-frame is empty). Keyword `endian` can be used to specify the byte order of the
-received values (see [`DS9.byte_order`](@ref).
+yields the contents of current SAOImage/DS9 frame as an array (or as `nothing`
+if the frame is empty). Keyword `endian` can be used to specify the byte order
+of the received values (see [`DS9.byte_order`](@ref).
 
-To retrieve the version of the SAOImageDS9 program:
+To retrieve the version of the SAOImage/DS9 program:
 
     DS9.get(VersionNumber)
 
@@ -212,7 +213,8 @@ _parse(::Type{T}, str::AbstractString) where {T<:Real} = parse(T, str)
 
 function _parse(::Type{Bool}, str::AbstractString)
     key = strip(str)
-    haskey(_BOOLEANS, key) || throw(ArgumentError("invalid boolean textual value"))
+    haskey(_BOOLEANS, key) ||
+        throw(ArgumentError("invalid boolean textual value"))
     return _BOOLEANS[key]
 end
 
@@ -246,18 +248,18 @@ end
 """
     DS9.set(args...; data=nothing)
 
-sends command and/or data to the DS9 server.  The command is made of arguments
-`args...` converted into strings and merged with a separating spaces.  Keyword
-`data` can be used to specify the data to send.  An exception is thrown in case
-of error.
+sends command and/or data to the SAOImage/DS9 server.  The command is made of
+arguments `args...` converted into strings and merged with a separating spaces.
+Keyword `data` can be used to specify the data to send.  An exception is thrown
+in case of error.
 
 As a special case:
 
     DS9.set(arr; mask=false, new=false, endian=:native)
 
-set the contents of the current DS9 frame to be array `arr`.  Keyword `new` can
-be set true to create a new frame for displyaing the array.  Keyword `endian`
-can be used to specify the byte order of the values in `arr` (see
+set the contents of the current SAOImage/DS9 frame to be array `arr`.  Keyword
+`new` can be set true to create a new frame for displyaing the array.  Keyword
+`endian` can be used to specify the byte order of the values in `arr` (see
 [`DS9.byte_order`](@ref).
 
 See also [`DS9.connect`](@ref), [`DS9.get`](@ref) and [`XPA.set`](@ref).
@@ -320,7 +322,7 @@ _arraydescriptor(arr::DenseArray; kdws...) =
 yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or a
 type.  A value of 0 is returned if `x` is not of a supported type.
 
-See also [`DS9.bitpix_to_type`][(@ref).
+See also [`DS9.bitpix_to_type`](@ref).
 
 """
 bitpix_of(::DenseArray{T}) where {T} = bitpix_of(T)
@@ -337,7 +339,7 @@ bitpix_of(::Any) = 0
 yields Julia type corresponding to FITS bits-per-pixel (BITPIX) value `bp`.
 The value `Nothing` is returned if `bp` is unknown.
 
-See also [`DS9.bitpix_of`][(@ref).
+See also [`DS9.bitpix_of`](@ref).
 
 """
 bitpix_to_type(bitpix::Int) =
@@ -353,12 +355,12 @@ bitpix_to_type(::Any) = Nothing
 """
     DS9.byte_order(endian)
 
-yields the byte order for retrieving the elements of a DS9 array.  Argument can
-be one of the strings (or the equivalent symbol): `"big"` for most significant
-byte first, `"little"` for least significant byte first or `"native"` to yield
-the byte order of the machine.
+yields the byte order for retrieving the elements of a SAOImage/DS9 array.
+Argument can be one of the strings (or the equivalent symbol): `"big"` for most
+significant byte first, `"little"` for least significant byte first or
+`"native"` to yield the byte order of the machine.
 
-See also [`DS9.get`][(@ref), [`DS9.set`][(@ref).
+See also [`DS9.get`](@ref), [`DS9.set`](@ref).
 
 """
 byte_order(endian::Symbol) =
