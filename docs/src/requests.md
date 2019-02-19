@@ -1,7 +1,7 @@
-# DS9 requests
+# SAOImage/DS9 requests
 
 There are two kinds of requests: **get** requests to retrieve some information
-or data form SAOImage/DS9 and **set** requests to send some data to
+or data from SAOImage/DS9 and **set** requests to send some data to
 SAOImage/DS9 or to set some of its parameters.
 
 

@@ -1,4 +1,4 @@
-# Connection to a specific SAOImage/DS9 server
+# Connection to a specific server
 
 When `DS9.connect()` is called without any argument, all subsequent requests
 will be sent to the first SAOImage/DS9 instance found by the XPA name server.

@@ -1,4 +1,4 @@
-# The DS9.jl package
+# Introduction
 
 The [DS9.jl](https://github.com/emmt/DS9.jl) package provides an interface
 between [Julia](http://julialang.org/) and the image viewer

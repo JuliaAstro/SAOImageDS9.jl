@@ -1,4 +1,4 @@
-# DS9.jl library
+# Package library
 
 ## Requests to SAOImage/DS9
 
