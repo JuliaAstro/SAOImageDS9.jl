@@ -84,7 +84,7 @@ See also [`DS9.accesspoint`](@ref) and [`DS9.connection`](@ref).
 function connect(apt::AbstractString = "DS9:*")
     cnt = 0
     rep = XPA.get(_xpa(), apt, "version"; nmax=-1)
-    for i in 1:length(cnt)
+    for i in 1:length(rep)
         XPA.has_error(rep, i) && continue # ignore errors
         cnt += 1
         if cnt == 1
