@@ -2,17 +2,18 @@ using Test
 using DS9, XPA
 using XPA: TupleOf
 
+proc = Base.Process[]
+
 function ds9start(timeout::Real = 10.0)
-    launched = false
+    global proc
     elapsed = 0.0
     seconds = 1.0
     while true
         try
             return DS9.connect()
         catch
-            if !launched
-                run(`ds9`; wait=false)
-                launched = true
+            if length(proc) < 1
+                push!(proc, run(`ds9`; wait=false))
             end
             if elapsed > timeout
                 error("cannot connect to SAOImage/DS9")
@@ -23,8 +24,18 @@ function ds9start(timeout::Real = 10.0)
     end
 end
 
+function ds9kill()
+    global proc
+    if length(proc) ≥ 1
+        kill(pop!(proc))
+    end
+    nothing
+end
+
 ds9start()
 
 @testset "Get requests" begin
     @test typeof(DS9.get(VersionNumber)) == VersionNumber
 end
+
+ds9kill()
