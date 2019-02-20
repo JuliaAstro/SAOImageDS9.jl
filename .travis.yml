@@ -19,7 +19,7 @@ notifications:
   email: false
 
 before_install:
-  - sudo apt-get install -y saods9 libxpa-dev
+  - sudo apt-get install -y saods9 xpa-tools libxpa-dev
 
 # To test this package, an X server must be running.
 services:
@@ -33,7 +33,7 @@ script:
 #                                 Pkg.clone(pwd());
 #                                 Pkg.test("DS9"; coverage=true)'
   - julia --check-bounds=yes -e 'println("Starting DS9...");
-                                 proc = run(`/usr/bin/ds9`; wait=false);
+                                 proc = run(`/usr/bin/ds9 -xpa yes`; wait=false);
                                  if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
                                  Pkg.clone("https://github.com/emmt/XPA.jl");
                                  Pkg.clone(pwd());
@@ -50,8 +50,9 @@ jobs:
       julia: 1.0
       os: linux
       script:
-        - julia --project=docs/ -e 'Pkg.clone("https://github.com/emmt/XPA.jl");
+        - julia --project=docs/ -e 'using Pkg;
+                                    Pkg.clone("https://github.com/emmt/XPA.jl");
                                     Pkg.develop(PackageSpec(path=pwd()));
-                                    Pkg.instantiate()'
+                                    Pkg.instantiate();'
         - julia --project=docs/ docs/make.jl
       after_success: skip
