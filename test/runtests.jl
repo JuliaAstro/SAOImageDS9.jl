@@ -13,7 +13,7 @@ function ds9start(timeout::Real = 10.0)
             return DS9.connect()
         catch
             if length(proc) < 1
-                push!(proc, run(`ds9`; wait=false))
+                push!(proc, run(`/usr/bin/ds9`; wait=false))
             end
             if elapsed > timeout
                 error("cannot connect to SAOImage/DS9")
