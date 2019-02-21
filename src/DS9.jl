@@ -93,8 +93,8 @@ function connect(apt::AbstractString = "DS9:*")
         end
     end
     if cnt > 1
-        _war("more than one matching SAOImage/DS9 server found, the first ",
-             "one (\"", _ACCESSPOINT[], "\") was selected")
+        _warn("more than one matching SAOImage/DS9 server found, the first ",
+              "one (\"", _ACCESSPOINT[], "\") was selected")
     elseif cnt == 0
         _ACCESSPOINT[] = ""
         error("no matching SAOImage/DS9 server found")
