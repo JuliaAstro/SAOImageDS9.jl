@@ -157,24 +157,24 @@ See also [`DS9.connect`](@ref), [`DS9.set`](@ref) and [`XPA.get`](@ref).
 """
 get(args...) =
     XPA.get(_xpa(), _apt(), _join(args);
-            nmax=1, check=true)
+            nmax=1, throwerrors=true)
 
 # Yields result as a vector of numerical values extracted from the binary
 # contents of the reply.
 get(::Type{Vector{T}}, args...) where {T} =
     XPA.get(Vector{T}, _xpa(), _apt(), _join(args);
-            nmax=1, check=true)
+            nmax=1, throwerrors=true)
 
 # Idem with given number of elements.
 get(::Type{Vector{T}}, dim::Integer, args...) where {T} =
     XPA.get(Vector{T}, (dim,), _xpa(), _apt(), _join(args);
-            nmax=1, check=true)
+            nmax=1, throwerrors=true)
 
 # Yields result as an array of numerical values with given dimensions
 # and extracted from the binary contents of the reply.
 get(::Type{Array{T,N}}, dims::NTuple{N,Integer}, args...) where {T,N} =
     XPA.get(Array{T,N}, dims, _xpa(), _apt(), _join(args);
-            nmax=1, check=true)
+            nmax=1, throwerrors=true)
 
 # Idem but Array number of dimensions not specified.
 get(::Type{Array{T}}, dims::NTuple{N,Integer}, args...) where {T,N} =
@@ -183,7 +183,7 @@ get(::Type{Array{T}}, dims::NTuple{N,Integer}, args...) where {T,N} =
 # Yields result as a single string.
 get(::Type{String}, args...) =
     XPA.get(String, _xpa(), _apt(), _join(args);
-            nmax=1, check=true)
+            nmax=1, throwerrors=true)
 
 # Yields result as a vector of strings split out of the textual contents of the
 # reply.
@@ -267,7 +267,7 @@ See also [`DS9.connect`](@ref), [`DS9.get`](@ref) and [`XPA.set`](@ref).
 """
 function set(args...; data=nothing)
     XPA.set(_xpa(), _apt(), _join(args);
-            nmax=1, check=true, data=data)
+            nmax=1, throwerrors=true, data=data)
     return nothing
 end
 
