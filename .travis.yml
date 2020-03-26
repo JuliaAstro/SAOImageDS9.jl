@@ -12,11 +12,6 @@ julia:
   - 1.4
   - nightly
 
-matrix:
-  allow_failures:
-    - os: osx
-    - julia: nightly
-
 notifications:
   email: false
 
@@ -30,14 +25,10 @@ services:
 # uncomment the following lines to override the default test script
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-#  - julia --check-bounds=yes -e 'if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
-#                                 Pkg.clone("https://github.com/JuliaAstro/XPA.jl");
-#                                 Pkg.clone(pwd());
-#                                 Pkg.test("DS9"; coverage=true)'
   - julia --check-bounds=yes -e 'println("Starting DS9...");
                                  proc = run(`/usr/bin/ds9 -xpa yes`; wait=false);
                                  if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
-                                 Pkg.clone("https://github.com/JuliaAstro/XPA.jl");
+                                 Pkg.add(PackageSpec(url="https://github.com/JuliaAstro/XPA.jl", rev="master"));
                                  Pkg.clone(pwd());
                                  println("Killing DS9...");
                                  kill(proc)'
@@ -47,6 +38,9 @@ after_success:
   - julia --project=coverage/ coverage/coverage.jl
 
 jobs:
+  allow_failures:
+    - os: osx
+    - julia: nightly
   include:
     - stage: "Documentation"
       julia: 1.0
