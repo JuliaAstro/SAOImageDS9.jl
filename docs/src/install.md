@@ -14,17 +14,17 @@ To install the DS9.jl package, start Julia in interactive mode and do:
 
 ```julia
 using Pkg
-Pkg.clone("https://github.com/emmt/DS9.jl")
+Pkg.clone("https://github.com/JuliaAstro/DS9.jl")
 ```
 
 Don't be feared with the warning message about using deprecated `Pkg.clone`
 instead of `Pkg.add`, as of Julia 1.0,
-`Pkg.add("https://github.com/emmt/DS9.jl")` does not work in spite of what said
-the Julia documentation...
+`Pkg.add("https://github.com/JuliaAstro/DS9.jl")` does not work in spite of
+what said the Julia documentation...
 
-See [XPA.jl site](https://github.com/emmt/XPA.jl) for instructions about how to
-install this package if the installation of DS9.jl fails to properly install
-this required package.
+See [XPA.jl site](https://github.com/JuliaAstro/XPA.jl) for instructions about
+how to install this package if the installation of DS9.jl fails to properly
+install this required package.
 
 To upgrade the DS9.jl package:
 

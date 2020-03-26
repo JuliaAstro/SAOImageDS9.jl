@@ -68,12 +68,12 @@ function _apt() # @btime -> 3.706 ns (0 allocations: 0 bytes)
 end
 
 """
-    DS9.connect(apt="DS9:*") -> ident
+    DS9.connect(ident="DS9:*") -> apt
 
-set the access point for further SAOImage/DS9 commands.  Argument `apt`
+set the access point for further SAOImage/DS9 commands.  Argument `ident`
 identifies the XPA access point, it can be a template string like `"DS9:*"`
-which is the default value.  The returned value is the name of the access
-point.
+which is the default value or a regular expression.  The returned value is the
+name of the access point.
 
 To retrieve the name of the current SAOImage/DS9 access point, call the
 [`DS9.connection`](@ref) method.
@@ -81,25 +81,21 @@ To retrieve the name of the current SAOImage/DS9 access point, call the
 See also [`DS9.accesspoint`](@ref) and [`DS9.connection`](@ref).
 
 """
-function connect(apt::AbstractString = "DS9:*")
-    cnt = 0
-    rep = XPA.get(_xpa(), apt, "version"; nmax=-1)
-    for i in 1:length(rep)
-        XPA.has_error(rep, i) && continue # ignore errors
-        cnt += 1
-        if cnt == 1
-            _ACCESSPOINT[] = split(XPA.get_server(rep, i);
-                                   keepempty=false)[end]
-        end
+function connect(ident::Union{Regex,AbstractString} = "DS9:*"; kwds...)
+    if (isa(ident, AbstractString) &&
+        occursin(r"^[a-fA-F0-9]+:[1-9][0-9]*$", ident))
+        apt = string(ident)
+    else
+        apt = XPA.find(_xpa(), ident; kwds...)
+        apt === nothing && error("no matching SAOImage/DS9 server found")
     end
-    if cnt > 1
-        _warn("more than one matching SAOImage/DS9 server found, the first ",
-              "one (\"", _ACCESSPOINT[], "\") was selected")
-    elseif cnt == 0
-        _ACCESSPOINT[] = ""
-        error("no matching SAOImage/DS9 server found")
+    rep = XPA.get(_xpa(), apt, "version"; nmax=1)
+    if length(rep) != 1 || ! XPA.verify(rep)
+        error("XPA server at address \"" * apt *
+              "\" does not seem to be a SAOImage/DS9 server")
     end
-    return _ACCESSPOINT[]
+    _ACCESSPOINT[] = apt
+    return apt
 end
 
 _warn(args...) = printstyled(stderr, "WARNING: ", args..., "\n";

@@ -16,6 +16,6 @@ makedocs(
 
 if DEPLOYDOCS
     deploydocs(
-        repo = "github.com/emmt/DS9.jl.git",
+        repo = "github.com/JuliaAstro/DS9.jl.git",
     )
 end

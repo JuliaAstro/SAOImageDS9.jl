@@ -29,13 +29,13 @@ services:
 script:
   - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
 #  - julia --check-bounds=yes -e 'if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
-#                                 Pkg.clone("https://github.com/emmt/XPA.jl");
+#                                 Pkg.clone("https://github.com/JuliaAstro/XPA.jl");
 #                                 Pkg.clone(pwd());
 #                                 Pkg.test("DS9"; coverage=true)'
   - julia --check-bounds=yes -e 'println("Starting DS9...");
                                  proc = run(`/usr/bin/ds9 -xpa yes`; wait=false);
                                  if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
-                                 Pkg.clone("https://github.com/emmt/XPA.jl");
+                                 Pkg.clone("https://github.com/JuliaAstro/XPA.jl");
                                  Pkg.clone(pwd());
                                  println("Killing DS9...");
                                  kill(proc)'
@@ -51,7 +51,7 @@ jobs:
       os: linux
       script:
         - julia --project=docs/ -e 'using Pkg;
-                                    Pkg.clone("https://github.com/emmt/XPA.jl");
+                                    Pkg.clone("https://github.com/JuliaAstro/XPA.jl");
                                     Pkg.develop(PackageSpec(path=pwd()));
                                     Pkg.instantiate();'
         - julia --project=docs/ docs/make.jl

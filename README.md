@@ -8,4 +8,4 @@ Messaging System](https://github.com/ericmandel/xpa).
 
 | Documentation                              | License                                                                                      | Travis                                                                                                    |
 |:-------------------------------------------|:---------------------------------------------------------------------------------------------|:----------------------------------------------------------------------------------------------------------|
-| [Devel](https://emmt.github.io/DS9.jl/dev) | [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) | [![Build Status](https://travis-ci.org/emmt/DS9.jl.svg?branch=master)](https://travis-ci.org/emmt/DS9.jl) |
+| [Devel](https://JuliaAstro.github.io/DS9.jl/dev) | [![License](http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat)](LICENSE.md) | [![Build Status](https://travis-ci.org/JuliaAstro/DS9.jl.svg?branch=master)](https://travis-ci.org/JuliaAstro/DS9.jl) |
