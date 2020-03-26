@@ -2,7 +2,7 @@
 
 This [Julia](http://julialang.org/) package provides an interface to the image
 viewer [SAOImage/DS9](http://ds9.si.edu/site/Home.html) via
-[XPA.jl](https://github.com/emmt/XPA.jl), a Julia interface to the [XPA
+[XPA.jl](https://github.com/JuliaAstro/XPA.jl), a Julia interface to the [XPA
 Messaging System](https://github.com/ericmandel/xpa).
 
 
