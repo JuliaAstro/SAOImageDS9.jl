@@ -7,64 +7,41 @@
 #------------------------------------------------------------------------------
 #
 # This file is part of DS9.jl released under the MIT "expat" license.
-# Copyright (C) 2016-2019, Éric Thiébaut (https://github.com/emmt).
+# Copyright (C) 2016-2020, Éric Thiébaut (https://github.com/emmt).
 #
 
 module DS9
 
 using XPA
-using XPA: _join, TupleOf
-using Base: ENV
+using XPA: TupleOf, connection, join_arguments
 
+using Base: ENV
 
 # FITS pixel types.
 const PixelTypes = Union{UInt8,Int16,Int32,Int64,Float32,Float64}
 const PIXELTYPES = (UInt8, Int16, Int32, Int64, Float32, Float64)
 
 """
-    DS9.connection()
-
-yields the XPA persistent client connection used to communicate with
-SAOImage/DS9 server(s).
-
-See also [`DS9.accesspoint`](@ref), [`DS9.connect`](@ref) and
-[`XPA.Client`](@ref).
-
-"""
-function connection() # @btime -> 4.383 ns (0 allocations: 0 bytes)
-    if ! isopen(_CONNECTION[])
-        _CONNECTION[] =  XPA.Client()
-    end
-    return _CONNECTION[]
-end
-
-const _CONNECTION = Ref(XPA.TEMPORARY)
-
-const _xpa = connection # private shortcut
-
-"""
     DS9.accesspoint()
 
 yields the XPA access point which identifies the SAOImage/DS9 server.  This
-access point can be set by calling the [`DS9.connection`](@ref) method.  An
-empty string is returned if no access point has been chosen.  To automatically
+access point can be set by calling the [`DS9.connect`](@ref) method.  An empty
+string is returned if no access point has been chosen.  To automatically
 connect to SAOImage/DS9 if not yet done, you can do:
 
     if DS9.accesspoint() == ""; DS9.connect(); end
 
 See also [`DS9.connect`](@ref) and [`DS9.connection`](@ref).
 
-"""
-function accesspoint()
-    return _ACCESSPOINT[]
-end
-
+""" accesspoint
 const _ACCESSPOINT = Ref("")
+accesspoint() = _ACCESSPOINT[]
 
 # Same as `connection()` but check that a valid access point has been chosen.
 function _apt() # @btime -> 3.706 ns (0 allocations: 0 bytes)
-    _ACCESSPOINT[] != "" || error("call `DS9.connect(...)` first")
-    return _ACCESSPOINT[]
+    apt = accesspoint()
+    apt != "" || error("call `DS9.connect(...)` first")
+    return apt
 end
 
 """
@@ -76,26 +53,20 @@ which is the default value or a regular expression.  The returned value is the
 name of the access point.
 
 To retrieve the name of the current SAOImage/DS9 access point, call the
-[`DS9.connection`](@ref) method.
-
-See also [`DS9.accesspoint`](@ref) and [`DS9.connection`](@ref).
+[`DS9.accesspoint`](@ref) method.
 
 """
 function connect(ident::Union{Regex,AbstractString} = "DS9:*"; kwds...)
-    if (isa(ident, AbstractString) &&
-        occursin(r"^[a-fA-F0-9]+:[1-9][0-9]*$", ident))
-        apt = string(ident)
-    else
-        apt = XPA.find(_xpa(), ident; kwds...)
-        apt === nothing && error("no matching SAOImage/DS9 server found")
-    end
-    rep = XPA.get(_xpa(), apt, "version"; nmax=1)
+    apt = XPA.find(ident; kwds...)
+    apt === nothing && error("no matching SAOImage/DS9 server found")
+    rep = XPA.get(apt, "version"; nmax=1)
     if length(rep) != 1 || ! XPA.verify(rep)
         error("XPA server at address \"" * apt *
               "\" does not seem to be a SAOImage/DS9 server")
     end
-    _ACCESSPOINT[] = apt
-    return apt
+    addr = XPA.address(apt)
+    _ACCESSPOINT[] = addr
+    return addr
 end
 
 _warn(args...) = printstyled(stderr, "WARNING: ", args..., "\n";
@@ -151,25 +122,22 @@ To retrieve the version of the SAOImage/DS9 program:
 See also [`DS9.connect`](@ref), [`DS9.set`](@ref) and [`XPA.get`](@ref).
 
 """
-get(args...) =
-    XPA.get(_xpa(), _apt(), _join(args);
-            nmax=1, throwerrors=true)
+get(args...) = XPA.get(_apt(), join_arguments(args); nmax=1, throwerrors=true)
 
 # Yields result as a vector of numerical values extracted from the binary
 # contents of the reply.
 get(::Type{Vector{T}}, args...) where {T} =
-    XPA.get(Vector{T}, _xpa(), _apt(), _join(args);
-            nmax=1, throwerrors=true)
+    XPA.get(Vector{T}, _apt(), join_arguments(args); nmax=1, throwerrors=true)
 
 # Idem with given number of elements.
 get(::Type{Vector{T}}, dim::Integer, args...) where {T} =
-    XPA.get(Vector{T}, (dim,), _xpa(), _apt(), _join(args);
+    XPA.get(Vector{T}, (dim,), _apt(), join_arguments(args);
             nmax=1, throwerrors=true)
 
 # Yields result as an array of numerical values with given dimensions
 # and extracted from the binary contents of the reply.
 get(::Type{Array{T,N}}, dims::NTuple{N,Integer}, args...) where {T,N} =
-    XPA.get(Array{T,N}, dims, _xpa(), _apt(), _join(args);
+    XPA.get(Array{T,N}, dims, _apt(), join_arguments(args);
             nmax=1, throwerrors=true)
 
 # Idem but Array number of dimensions not specified.
@@ -178,8 +146,7 @@ get(::Type{Array{T}}, dims::NTuple{N,Integer}, args...) where {T,N} =
 
 # Yields result as a single string.
 get(::Type{String}, args...) =
-    XPA.get(String, _xpa(), _apt(), _join(args);
-            nmax=1, throwerrors=true)
+    XPA.get(String, _apt(), join_arguments(args); nmax=1, throwerrors=true)
 
 # Yields result as a vector of strings split out of the textual contents of the
 # reply.
@@ -262,8 +229,7 @@ See also [`DS9.connect`](@ref), [`DS9.get`](@ref) and [`XPA.set`](@ref).
 
 """
 function set(args...; data=nothing)
-    XPA.set(_xpa(), _apt(), _join(args);
-            nmax=1, throwerrors=true, data=data)
+    XPA.set(_apt(), join_arguments(args); nmax=1, throwerrors=true, data=data)
     return nothing
 end
 
