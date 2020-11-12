@@ -37,10 +37,18 @@ See also [`DS9.connect`](@ref) and [`DS9.connection`](@ref).
 const _ACCESSPOINT = Ref("")
 accesspoint() = _ACCESSPOINT[]
 
-# Same as `connection()` but check that a valid access point has been chosen.
+# Same as `connection()` but attempt to automatically connect an access point
+# has not yet been chosen.
 function _apt() # @btime -> 3.706 ns (0 allocations: 0 bytes)
     apt = accesspoint()
-    apt != "" || error("call `DS9.connect(...)` first")
+    if apt == ""
+        try
+            apt = connect()
+        catch err
+            _warn("Failed to automatically connect to SAOImage/DS9.\n",
+                  "Launch ds9 then do `ds9connect()`")
+        end
+    end
     return apt
 end
 
@@ -71,9 +79,6 @@ end
 
 _warn(args...) = printstyled(stderr, "WARNING: ", args..., "\n";
                              color=:yellow)
-
-# Establish the first connection.
-#connect();
 
 """
     DS9.get([T, [dims,]] args...)
