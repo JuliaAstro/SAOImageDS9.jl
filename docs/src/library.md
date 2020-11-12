@@ -15,6 +15,12 @@ DS9.accesspoint
 ```
 
 
+## Drawing
+
+```@docs
+DS9.draw
+```
+
 ## Utilities
 
 ```@docs

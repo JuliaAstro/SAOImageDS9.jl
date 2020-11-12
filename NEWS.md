@@ -7,3 +7,6 @@
 
 - Try to automatically connect to a running SAOImage/DS9 application if an
   access point has not yet been specified.
+
+- New method `DS9.draw` to draw or display various things (image, points,
+  rectangles, ...) in SAOImage/DS9.

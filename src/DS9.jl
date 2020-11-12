@@ -15,7 +15,10 @@ module DS9
 using XPA
 using XPA: TupleOf, connection, join_arguments
 
+using TwoDimensional
+
 using Base: ENV
+using Base.Iterators: Pairs
 
 # FITS pixel types.
 const PixelTypes = Union{UInt8,Int16,Int32,Int64,Float32,Float64}
@@ -345,5 +348,242 @@ byte_order(endian::AbstractString) =
      endian == "big" || endian == "little" ? endian :
      error("invalid byte order"))
 
+#------------------------------------------------------------------------------
+# DRAWING
+
+"""
+    DS9.draw(args...; kwds...)
+
+draws something in SAOImage/DS9 application.  The operation depends on the type
+of the arguments.
+
+---
+    DS9.draw(img; kwds...)
+
+displays image `img` (a 2-dimensional Julia array) in SAOImage/DS9.
+The following keywords are possible:
+
+- Keyword `frame` can be used to specify the frame number.
+
+- Keyword `cmap` can be used to specify the name of the colormap.  For
+  instance, `cmap="gist_stern"`.
+
+- Keyword `zoom` can be used to specify the zoom factor.
+
+- Keywords `min` and/or `max` can be used to specify the scale limits.
+
+---
+    DS9.draw(pnt; kwds...)
+
+draws `pnt` as point(s) in SAOImage/DS9, `pnt` is a `Point`, an array or a tuple
+of `Point`.
+
+---
+    DS9.draw(box; kwds...)
+
+draws `box` as rectangle(s) in SAOImage/DS9, `box` is a `BoundingBox`, an array
+or a tuple of `BoundingBox`.
+
+"""
+draw(args...; kwds...) = draw(args; kwds...)
+draw(::Tuple{}; kwds...) = nothing
+draw(::T; kwds...) where {T} = error("unexpected type of argument(s): $T")
+
+function draw(img::AbstractMatrix;
+              min::Union{Real,Nothing} = nothing,
+              max::Union{Real,Nothing} = nothing,
+              cmap = nothing,
+              frame = nothing,
+              zoom = nothing)
+    # FIXME: pack all commands into a single one.
+    frame === nothing || ds9set("frame", frame)
+    zoom === nothing || ds9set("zoom to", zoom)
+    set(img)
+    if min !== nothing || max !== nothing
+        set("scale limits", limits(img, min, max)...)
+    end
+    cmap === nothing || set("cmap", cmap)
+    return nothing
+end
+
+# For multiple points/circles/... we just send a DS9 command for each item to
+# draw.  Packing multiple commands (separated by semi-columns) does not really
+# speed-up things and is more complicated because there is a limit to the total
+# length of an XPA command (given by XPA.SZ_LINE I guess).
+
+draw(A::Point; kwds...) = _draw(_region(Val(:point), kwds), A)
+function draw(A::Union{Tuple{Vararg{Point}},
+                       AbstractArray{<:Point}}; kwds...)
+    cmd = _region(Val(:point), kwds)
+    for i in eachindex(A)
+        _draw(cmd, A[i])
+    end
+end
+
+draw(A::BoundingBox; kwds...) =  _draw(_region(Val(:polygon), kwds), A)
+function draw(A::Union{Tuple{Vararg{BoundingBox}},
+                       AbstractArray{<:BoundingBox}}; kwds...)
+    cmd = _region(Val(:polygon), kwds)
+    for i in eachindex(A)
+        _draw(cmd, A[i])
+    end
+end
+
+function _draw(cmd::NTuple{2,AbstractString}, A::Point)
+    set(cmd[1], A.x, A.y, cmd[2])
+    nothing
+end
+
+function _draw(cmd::NTuple{2,AbstractString}, A::BoundingBox)
+    x0, x1, y0, y1 = Tuple(A)
+    set(cmd[1], x0, y0, x1, y0, x1, y1, x0, y1, x0, y0, cmd[2])
+    nothing
+end
+
+_set_options(kwds::Pairs) = (isempty(kwds) ? "" :
+                             throw(ArgumentError("unexpected argument")))
+
+function _set_options(kwds::Pairs{Symbol})
+    io = IOBuffer()
+    print(io, " #")
+    for (key, val) in kwds
+        _set_option(io, key, val)
+    end
+    print(io, " }")
+    return String(take!(io))
+end
+
+_set_option(io::IOBuffer, name::Union{Symbol,AbstractString}, value::Nothing) =
+    nothing
+_set_option(io::IOBuffer, name::Union{Symbol,AbstractString}, value) =
+    print(io, " ", name, "=", value)
+_set_option(io::IOBuffer, name::Union{Symbol,AbstractString}, value::Bool) =
+    print(io, " ", name, (value ? "=1" : "=0"))
+
+for id in (:circle, :ellipse, :box, :polygon, :point, :line,
+           :vector, :text, :ruler, :compass, :projection, :annulus,
+           :panda, :epanda, :bpanda)
+    V = Val{id}
+    cmd = "regions command { $id"
+    @eval _region(::$V, kwds::Pairs) = ($cmd, _set_options(kwds))
+end
+
+#------------------------------------------------------------------------------
+# LIMITS
+
+"""
+    limits(A, cmin=nothing, cmax=nothing) -> (cminp, cmaxp)
+
+yields the clipping limits of values in array `A`.  The result is a 2-tuple of
+double precision floats.  If `cmin` is `nothing`, `cminp` is the minimal finite
+value found in `A` and converted to `Cdouble`; otherwise `cminp =
+Cdouble(cmin)`.  If `cmax` is `nothing`, `cmaxp` is the maximal finite value
+found in `A` and converted to `Cdouble`; otherwise `cmaxp = Cdouble(cmax)`.
+
+"""
+limits(A::AbstractArray{<:Real}, ::Nothing, ::Nothing) =
+    to_limits(finite_extrema(A))
+
+limits(A::AbstractArray{<:Real}, cmin::Real, ::Nothing) =
+    to_limits(cmin, finite_maximum(A))
+
+limits(A::AbstractArray{<:Real}, ::Nothing, cmax::Real) =
+    to_limits(finite_minimum(A), cmax)
+
+limits(A::AbstractArray{<:Real}, cmin::Real, cmax::Real) =
+    to_limits(cmin, cmax)
+
+to_limits(c::Tuple{Real,Real}) = to_limits(c...)
+to_limits(cmin::Cdouble, cmax::Cdouble) = (cmin, cmax)
+to_limits(cmin::Real, cmax::Real) = to_limits(convert(Cdouble, cmin),
+                                              convert(Cdouble, cmax))
+
+"""
+    finite_extrema(A) -> (vmin, vmax)
+
+yields the minimum and maximum finite values in array `A`.  The result is such
+that `vmin ≤ vmax` (both values being finite) unless there are no finite values
+in `A` in which case `vmin > vmax`.
+
+"""
+finite_extrema(A::AbstractArray{<:Real}) = valid_extrema(isfinite, A)
+
+"""
+    finite_minimum(A) -> vmin
+
+yields the minimum finite value in array `A`.  The result is never a NaN but
+may be `typemax(eltype(A))` if there are no finite values in `A`.
+
+"""
+finite_minimum(A::AbstractArray{<:Real}) = valid_minimum(isfinite, A)
+
+"""
+    finite_maximum(A) -> vmax
+
+yields the maximum finite value in array `A`.  The result is never a NaN but
+may be `typemin(eltype(A))` if there are no finite values in `A`.
+
+"""
+finite_maximum(A::AbstractArray{<:Real}) = valid_maximum(isfinite, A)
+
+"""
+    valid_extrema(pred, A) -> (vmin, vmax)
+
+yields the minimum and maximum valid values in array `A`.  Valid values are
+those for which predicate `pred` yields `true`.  The result is such that `vmin
+≤ vmax` (both values being valid) unless there are no valid values in `A` in
+which case `vmin > vmax`.  The predicate function is assumed to take care of
+NaN's.
+
+"""
+function valid_extrema(pred, A::AbstractArray{T}) where {T}
+    vmin = typemax(T)
+    vmax = typemin(T)
+    @inbounds @simd for i in eachindex(A)
+        val = A[i]
+        vmin = ifelse(pred(val)&(val < vmin), val, vmin)
+        vmax = ifelse(pred(val)&(val > vmax), val, vmax)
+    end
+    return (vmin, vmax)
+end
+valid_extrema(::typeof(isfinite), A::AbstractRange{<:Real}) = extrema(A)
+
+"""
+    valid_minimum(A) -> vmin
+
+yields the minimum valid value in array `A`.  Valid values are those for which
+predicate `pred` yields `true`.  The result is a valid value but may be
+`typemax(eltype(A))` if there are no valid values in `A`.  The predicate
+function is assumed to take care of NaN's.
+
+"""
+function valid_minimum(pred, A::AbstractArray{T}) where {T}
+    vmin = typemax(T)
+    @inbounds @simd for i in eachindex(A)
+        val = A[i]
+        vmin = ifelse(pred(val)&(val < vmin), val, vmin)
+    end
+    return vmin
+end
+valid_minimum(::typeof(isfinite), A::AbstractRange{<:Real}) = minimum(A)
+
+"""
+    valid_maximum(A) -> vmax
+
+yields the maximum valid value in array `A`.  Valid values are those for which
+predicate `pred` yields `true`.  The result is a valid value but may be
+`typemin(eltype(A))` if there are no valid values in `A`.  The predicate
+function is assumed to take care of NaN's.
+
+"""
+function valid_maximum(pred, A::AbstractArray{T}) where {T}
+    vmax = typemin(T)
+    @inbounds @simd for i in eachindex(A)
+        val = A[i]
+        vmax = ifelse(pred(val)&(val > vmax), val, vmax)
+    end
+    return vmax
+end
+valid_maximum(::typeof(isfinite), A::AbstractRange{<:Real}) = maximum(A)
 
 end # module
