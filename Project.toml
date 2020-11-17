@@ -3,16 +3,16 @@ uuid = "dbce9b26-8eb4-4825-964b-d4940cf8daff"
 authors = ["Éric Thiébaut <eric.thiebaut@univ-lyon1.fr>"]
 version = "0.2.0"
 
+[deps]
+TwoDimensional = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
+XPA = "d310a076-6a08-52b6-ab78-79baa254182b"
+
 [compat]
 julia = "1.3"
 TwoDimensional = "0.2"
 XPA = "0.2"
 
-[deps]
-TwoDimensional = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
-XPA = "d310a076-6a08-52b6-ab78-79baa254182b"
-
-[extra]
+[extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
