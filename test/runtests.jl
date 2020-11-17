@@ -1,5 +1,5 @@
 using Test
-using DS9, XPA
+using SAOImageDS9, XPA
 using XPA: TupleOf
 
 proc = Base.Process[]
@@ -10,7 +10,7 @@ function ds9start(timeout::Real = 10.0)
     seconds = 1.0
     while true
         try
-            return DS9.connect()
+            return SAOImageDS9.connect()
         catch
             if length(proc) < 1
                 push!(proc, run(`/usr/bin/ds9`; wait=false))
@@ -35,7 +35,7 @@ end
 ds9start()
 
 @testset "Get requests" begin
-    @test typeof(DS9.get(VersionNumber)) == VersionNumber
+    @test typeof(SAOImageDS9.get(VersionNumber)) == VersionNumber
 end
 
 ds9kill()

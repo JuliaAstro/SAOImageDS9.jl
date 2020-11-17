@@ -413,10 +413,10 @@ function draw(img::AbstractMatrix;
     return nothing
 end
 
-# For multiple points/circles/... we just send a DS9 command for each item to
-# draw.  Packing multiple commands (separated by semi-columns) does not really
-# speed-up things and is more complicated because there is a limit to the total
-# length of an XPA command (given by XPA.SZ_LINE I guess).
+# For multiple points/circles/... we just send a command to SAOImage/DS9 for
+# each item to draw.  Packing multiple commands (separated by semi-columns)
+# does not really speed-up things and is more complicated because there is a
+# limit to the total length of an XPA command (given by XPA.SZ_LINE I guess).
 
 draw(A::Point; kwds...) = _draw(_region(Val(:point), kwds), A)
 function draw(A::Union{Tuple{Vararg{Point}},
