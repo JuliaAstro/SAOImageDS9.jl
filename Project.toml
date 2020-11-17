@@ -5,6 +5,7 @@ version = "0.2.0"
 
 [compat]
 julia = "1.3"
+TwoDimensional = "0.2"
 XPA = "0.2"
 
 [deps]
