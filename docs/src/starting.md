@@ -1,27 +1,34 @@
 # Starting
 
-In your Julia code/session, it is sufficient to do:
+To use `SAOImageDS9` package, type:
 
 ```julia
-import DS9
+using SAOImageDS9
 ```
-or:
+
+will import the symbol `DS9` which can be used to prefix all methods
+available in `SAOImageDS9`.  If you prefer another prefix, say `sao`,
+you can do:
 
 ```julia
-using DS9
+import SAOImageDS9
+const sao = SAOImageDS9
 ```
 
-which are equivalent as `DS9.jl` does not export any symbols.  Thus all
-commands are prefixed by `DS9.`, if you prefer a different prefix, you can do
-something like:
+or (provided your Julia version is at least 1.6):
 
 ```julia
-const ds9 = DS9
+import SAOImageDS9 as sao
 ```
+
+You may also just `import SAOImageDS9` and keep the `SAOImageDS9` prefix (this
+may however be a bit tedious in interactive sessions).  Throughout all the
+remaining documentation, it is assumed that `using SAOImageDS9` has been called
+so that the `DS9` shortcut is used.
 
 You may call the [`DS9.connect`](@ref) method to specify the access point to a
 given running SAOImage/DS9 application.  If no given access point is specified,
-`DS9.jl` will automatically attempts to connect to the first access point
+`SAOImageDS9` will automatically attempts to connect to the first access point
 matching `"DS9.*"` when a command is sent to SAOImage/DS9.  The method
 [`DS9.accesspoint()`](@ref) yields the name of the current access point to
 SAOImage/DS9, or an empty string if none has been chosen.

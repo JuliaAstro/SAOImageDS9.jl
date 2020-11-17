@@ -1,7 +1,7 @@
 using Documenter
 
 push!(LOAD_PATH,"../src/")
-using DS9, XPA
+using SAOImageDS9, XPA
 
 DEPLOYDOCS = (get(ENV, "CI", nothing) == "true")
 
@@ -17,6 +17,6 @@ makedocs(
 
 if DEPLOYDOCS
     deploydocs(
-        repo = "github.com/JuliaAstro/DS9.jl.git",
+        repo = "github.com/JuliaAstro/SAOImageDS9.jl.git",
     )
 end

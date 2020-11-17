@@ -1,16 +1,20 @@
 #
-# DS9.jl --
+# SAOImageDS9.jl --
 #
 # Implement communication with SAOImage/DS9 (http://ds9.si.edu) via the XPA
 # protocol.
 #
 #------------------------------------------------------------------------------
 #
-# This file is part of DS9.jl released under the MIT "expat" license.
+# This file is part of SAOImageDS9.jl released under the MIT "expat" license.
 # Copyright (C) 2016-2020, Éric Thiébaut (https://github.com/emmt).
 #
 
-module DS9
+module SAOImageDS9
+
+export DS9
+
+const DS9 = SAOImageDS9
 
 using XPA
 using XPA: TupleOf, connection, join_arguments

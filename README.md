@@ -11,25 +11,25 @@ Messaging System](https://github.com/ericmandel/xpa).
 | [![][doc-dev-img]][doc-dev-url] | [![][license-img]][license-url] | [![][travis-img]][travis-url] |
 
 [doc-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
-[doc-stable-url]: https://JuliaAstro.github.io/DS9.jl/stable
+[doc-stable-url]: https://JuliaAstro.github.io/SAOImageDS9.jl/stable
 
 [doc-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[doc-dev-url]: https://JuliaAstro.github.io/DS9.jl/dev
+[doc-dev-url]: https://JuliaAstro.github.io/SAOImageDS9.jl/dev
 
 [license-url]: ./LICENSE.md
 [license-img]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
 
-[travis-img]: https://travis-ci.org/JuliaAstro/DS9.jl.svg?branch=master
-[travis-url]: https://travis-ci.org/JuliaAstro/DS9.jl
+[travis-img]: https://travis-ci.org/JuliaAstro/SAOImageDS9.jl.svg?branch=master
+[travis-url]: https://travis-ci.org/JuliaAstro/SAOImageDS9.jl
 
-[appveyor-img]: https://ci.appveyor.com/api/projects/status/github/JuliaAstro/DS9.jl?branch=master
-[appveyor-url]: https://ci.appveyor.com/project/JuliaAstro/DS9-jl/branch/master
+[appveyor-img]: https://ci.appveyor.com/api/projects/status/github/JuliaAstro/SAOImageDS9.jl?branch=master
+[appveyor-url]: https://ci.appveyor.com/project/JuliaAstro/SAOImageDS9-jl/branch/master
 
-[coveralls-img]: https://coveralls.io/repos/JuliaAstro/DS9.jl/badge.svg?branch=master&service=github
-[coveralls-url]: https://coveralls.io/github/JuliaAstro/DS9.jl?branch=master
+[coveralls-img]: https://coveralls.io/repos/JuliaAstro/SAOImageDS9.jl/badge.svg?branch=master&service=github
+[coveralls-url]: https://coveralls.io/github/JuliaAstro/SAOImageDS9.jl?branch=master
 
-[codecov-img]: http://codecov.io/github/JuliaAstro/DS9.jl/coverage.svg?branch=master
-[codecov-url]: http://codecov.io/github/JuliaAstro/DS9.jl?branch=master
+[codecov-img]: http://codecov.io/github/JuliaAstro/SAOImageDS9.jl/coverage.svg?branch=master
+[codecov-url]: http://codecov.io/github/JuliaAstro/SAOImageDS9.jl?branch=master
 
 [julia-url]: https://julialang.org/
 [julia-pkgs-url]: https://pkg.julialang.org/

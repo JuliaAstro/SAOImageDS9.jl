@@ -1,4 +1,4 @@
-name = "DS9"
+name = "SAOImageDS9"
 uuid = "dbce9b26-8eb4-4825-964b-d4940cf8daff"
 authors = ["Éric Thiébaut <eric.thiebaut@univ-lyon1.fr>"]
 version = "0.2.0"

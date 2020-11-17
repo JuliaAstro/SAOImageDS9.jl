@@ -10,28 +10,28 @@ system, you can call `apt-get` from the command line:
 sudo apt-get install saods9 libxpa-dev
 ```
 
-DS9.jl can be can be installed by Julia's package manager:
+`SAOImageDS9` can be can be installed by Julia's package manager:
 
 ```
-... pkg> add https://github.com/JuliaAstro/DS9.jl
+... pkg> add https://github.com/JuliaAstro/SAOImageDS9.jl
 ```
 
 Another possibility from Julia's REPL or in a Julia script:
 
 ```julia
 using Pkg
-Pkg.add(PackageSpec(url="https://github.com/JuliaAstro/DS9.jl", rev="master"))
+Pkg.add(PackageSpec(url="https://github.com/JuliaAstro/SAOImageDS9.jl", rev="master"))
 ```
 
 See [XPA.jl site](https://github.com/JuliaAstro/XPA.jl) for instructions about
-how to install this package if the installation of DS9.jl fails to properly
-install this required package.
+how to install this package if the installation of `SAOImageDS9` fails to
+properly install this required package.
 
-To upgrade the DS9.jl package:
+To upgrade the `SAOImageDS9` package:
 
 ```julia
 using Pkg
-Pkg.update("DS9")
+Pkg.update("SAOImageDS9")
 ```
 
 There is nothing to build.
