@@ -20,21 +20,9 @@ before_install:
 services:
   - xvfb
 
-# uncomment the following lines to override the default test script
-script:
-  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
-  - julia --check-bounds=yes -e 'println("Starting DS9...");
-                                 proc = run(`/usr/bin/ds9 -xpa yes`; wait=false);
-                                 if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
-                                 Pkg.clone(pwd());
-                                 import SAOImageDS9;
-                                 println("Killing DS9...");
-                                 SAOImageDS9.set("exit");
-                                 kill(proc)'
+codecov: true
 
-after_success:
-  - julia --project=coverage/ -e 'if VERSION >= v"0.7"; using Pkg; Pkg.instantiate(); end'
-  - julia --project=coverage/ coverage/coverage.jl
+coveralls: true
 
 jobs:
   allow_failures:
@@ -42,11 +30,12 @@ jobs:
     - julia: nightly
   include:
     - stage: "Documentation"
-      julia: 1.0
+      julia: 1.4
       os: linux
       script:
         - julia --project=docs/ -e 'using Pkg;
                                     Pkg.develop(PackageSpec(path=pwd()));
-                                    Pkg.instantiate();'
+                                    Pkg.build("SAOImageDS9");
+                                    Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       after_success: skip
