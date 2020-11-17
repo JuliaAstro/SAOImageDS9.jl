@@ -26,9 +26,10 @@ script:
   - julia --check-bounds=yes -e 'println("Starting DS9...");
                                  proc = run(`/usr/bin/ds9 -xpa yes`; wait=false);
                                  if VERSION >= v"0.7.0-DEV.5183"; using Pkg; end;
-                                 Pkg.add(PackageSpec(url="https://github.com/JuliaAstro/XPA.jl", rev="master"));
                                  Pkg.clone(pwd());
+                                 import SAOImageDS9;
                                  println("Killing DS9...");
+                                 SAOImageDS9.set("exit");
                                  kill(proc)'
 
 after_success:
@@ -45,7 +46,6 @@ jobs:
       os: linux
       script:
         - julia --project=docs/ -e 'using Pkg;
-                                    Pkg.clone("https://github.com/JuliaAstro/XPA.jl");
                                     Pkg.develop(PackageSpec(path=pwd()));
                                     Pkg.instantiate();'
         - julia --project=docs/ docs/make.jl
