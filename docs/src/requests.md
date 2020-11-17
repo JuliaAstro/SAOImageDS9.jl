@@ -11,7 +11,7 @@ The general syntax to perform a **set** request to the current SAOImage/DS9
 access point is:
 
 ```julia
-DS9.set(args...; data=nothing)
+SAOImageDS9.set(args...; data=nothing)
 ```
 
 where `args...` are any number of arguments which will be automatically
@@ -21,9 +21,9 @@ converted in a string where the arguments are separated by spaces.  The keyword
 will set the current zoom to be equal to 3.7:
 
 ```julia
-DS9.set(:zoom,:to,3.7)
-DS9.set("zoom to",3.7)
-DS9.set("zoom to 3.7")
+SAOImageDS9.set(:zoom,:to,3.7)
+SAOImageDS9.set("zoom to",3.7)
+SAOImageDS9.set("zoom to 3.7")
 ```
 
 where the last line shows the string which is effectively sent to SAOImage/DS9
@@ -33,7 +33,7 @@ As a special case, `args...` can be a single array to send to SAOImage/DS9 for
 being displayed:
 
 ```julia
-DS9.set(arr)
+SAOImageDS9.set(arr)
 ```
 
 where `arr` is a 2D or 3D Julia array.  SAOImage/DS9 will display the values of
@@ -49,42 +49,43 @@ SAOImage/DS9 frame.
 To perform a **get** request, the general syntax is:
 
 ```julia
-DS9.get([T, [dims,]] args...)
+SAOImageDS9.get([T, [dims,]] args...)
 ```
 
-where the `args...` arguments are treated as for the `DS9.set` method (that is
-converted into a single text string with separating spaces).  Optional
+where the `args...` arguments are treated as for the `SAOImageDS9.set` method
+(that is converted into a single text string with separating spaces).  Optional
 arguments `T` and `dims` are to specify the type of the expected result and,
 possibly, its list of dimensions.
 
-If neither `T` nor `dims` are specified, the result of the `DS9.get(args...)`
-call is an instance of `XPA.Reply` (see documentation about XPA.jl package for
-how to deal with the contents of such an instance).
+If neither `T` nor `dims` are specified, the result of the
+`SAOImageDS9.get(args...)` call is an instance of `XPA.Reply` (see
+documentation about XPA.jl package for how to deal with the contents of such an
+instance).
 
 The following methods can be used to issue a **get** request to the current DS9
 access point depending on the expected type of result:
 
 ```julia
-DS9.get(Vector{UInt8}, args...)         -> buf
-DS9.get(String, args...)                -> str
-DS9.get(Vector{String}, args...;
-        delim=isspace, keepempty=false) -> arr
-DS9.get(Tuple{Vararg{String}}, args...;
-        delim=isspace, keepempty=false) -> tup
+SAOImageDS9.get(Vector{UInt8}, args...)         -> buf
+SAOImageDS9.get(String, args...)                -> str
+SAOImageDS9.get(Vector{String}, args...;
+                delim=isspace, keepempty=false) -> arr
+SAOImageDS9.get(Tuple{Vararg{String}}, args...;
+                delim=isspace, keepempty=false) -> tup
 ```
 
-where `args...` are treated as for the `DS9.set` method.  The returned values
-are respectively a vector of bytes, a single string (with the last end-of-line
-removed if any), an array of strings (one for each line of the result and empty
-line removed unless keyword `keepempty` is set `true`), or an array of
-(non-empty) words.
+where `args...` are treated as for the `SAOImageDS9.set` method.  The returned
+values are respectively a vector of bytes, a single string (with the last
+end-of-line removed if any), an array of strings (one for each line of the
+result and empty line removed unless keyword `keepempty` is set `true`), or an
+array of (non-empty) words.
 
 If a single scalar integer or floating point is expected, two methods are
 available:
 
 ```julia
-DS9.get(Int, args...)    -> scalar
-DS9.get(Float, args...)  -> scalar
+SAOImageDS9.get(Int, args...)    -> scalar
+SAOImageDS9.get(Float, args...)  -> scalar
 ```
 
 which return respectively an `Int` and a `Float64`.
@@ -92,7 +93,7 @@ which return respectively an `Int` and a `Float64`.
 To retrieve the array displayed by the current SAOImage/DS9 frame, do:
 
 ```julia
-arr = DS9.get(Array);
+arr = SAOImageDS9.get(Array);
 ```
 
 Keyword `order` can be used to specify the byte ordering.

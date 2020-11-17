@@ -29,16 +29,16 @@ const PixelTypes = Union{UInt8,Int16,Int32,Int64,Float32,Float64}
 const PIXELTYPES = (UInt8, Int16, Int32, Int64, Float32, Float64)
 
 """
-    DS9.accesspoint()
+    SAOImageDS9.accesspoint()
 
 yields the XPA access point which identifies the SAOImage/DS9 server.  This
-access point can be set by calling the [`DS9.connect`](@ref) method.  An empty
-string is returned if no access point has been chosen.  To automatically
-connect to SAOImage/DS9 if not yet done, you can do:
+access point can be set by calling the [`SAOImageDS9.connect`](@ref) method.
+An empty string is returned if no access point has been chosen.  To
+automatically connect to SAOImage/DS9 if not yet done, you can do:
 
-    if DS9.accesspoint() == ""; DS9.connect(); end
+    if SAOImageDS9.accesspoint() == ""; SAOImageDS9.connect(); end
 
-See also [`DS9.connect`](@ref) and [`DS9.connection`](@ref).
+See also [`SAOImageDS9.connect`](@ref) and [`SAOImageDS9.accesspoint`](@ref).
 
 """ accesspoint
 const _ACCESSPOINT = Ref("")
@@ -60,7 +60,7 @@ function _apt() # @btime -> 3.706 ns (0 allocations: 0 bytes)
 end
 
 """
-    DS9.connect(ident="DS9:*") -> apt
+    SAOImageDS9.connect(ident="DS9:*") -> apt
 
 set the access point for further SAOImage/DS9 commands.  Argument `ident`
 identifies the XPA access point, it can be a template string like `"DS9:*"`
@@ -68,7 +68,7 @@ which is the default value or a regular expression.  The returned value is the
 name of the access point.
 
 To retrieve the name of the current SAOImage/DS9 access point, call the
-[`DS9.accesspoint`](@ref) method.
+[`SAOImageDS9.accesspoint`](@ref) method.
 
 """
 function connect(ident::Union{Regex,AbstractString} = "DS9:*"; kwds...)
@@ -88,7 +88,7 @@ _warn(args...) = printstyled(stderr, "WARNING: ", args..., "\n";
                              color=:yellow)
 
 """
-    DS9.get([T, [dims,]] args...)
+    SAOImageDS9.get([T, [dims,]] args...)
 
 sends a "get" request to the SAOImage/DS9 server.  The request is made of
 arguments `args...` converted into strings and merged with separating spaces.
@@ -96,8 +96,9 @@ An exception is thrown in case of error.
 
 The returned value depends on the optional arguments `T` and `dims`:
 
-* If neither `T` nor `dims` are specified, an instance of [`XPA.Reply`](@ref)
-  is returned with at most one answer (see [`XPA.get`](@ref) for more details).
+* If neither `T` nor `dims` are specified, an instance of `XPA.Reply` is
+  returned with at most one answer (see documentation for `XPA.get` for more
+  details).
 
 * If only `T` is specified, it can be:
 
@@ -121,17 +122,18 @@ The returned value depends on the optional arguments `T` and `dims`:
 
 As a special case:
 
-    DS9.get(Array; endian=:native) -> arr
+    SAOImageDS9.get(Array; endian=:native) -> arr
 
 yields the contents of current SAOImage/DS9 frame as an array (or as `nothing`
 if the frame is empty). Keyword `endian` can be used to specify the byte order
-of the received values (see [`DS9.byte_order`](@ref).
+of the received values (see [`SAOImageDS9.byte_order`](@ref)).
 
 To retrieve the version of the SAOImage/DS9 program:
 
-    DS9.get(VersionNumber)
+    SAOImageDS9.get(VersionNumber)
 
-See also [`DS9.connect`](@ref), [`DS9.set`](@ref) and [`XPA.get`](@ref).
+See also [`SAOImageDS9.connect`](@ref), [`SAOImageDS9.set`](@ref) and
+`XPA.get`.
 
 """
 get(args...) = XPA.get(_apt(), join_arguments(args); nmax=1, throwerrors=true)
@@ -221,7 +223,7 @@ function get(::Type{VersionNumber})
 end
 
 """
-    DS9.set(args...; data=nothing)
+    SAOImageDS9.set(args...; data=nothing)
 
 sends command and/or data to the SAOImage/DS9 server.  The command is made of
 arguments `args...` converted into strings and merged with a separating spaces.
@@ -230,14 +232,15 @@ in case of error.
 
 As a special case:
 
-    DS9.set(arr; mask=false, new=false, endian=:native)
+    SAOImageDS9.set(arr; mask=false, new=false, endian=:native)
 
 set the contents of the current SAOImage/DS9 frame to be array `arr`.  Keyword
 `new` can be set true to create a new frame for displyaing the array.  Keyword
 `endian` can be used to specify the byte order of the values in `arr` (see
-[`DS9.byte_order`](@ref).
+[`SAOImageDS9.byte_order`](@ref).
 
-See also [`DS9.connect`](@ref), [`DS9.get`](@ref) and [`XPA.set`](@ref).
+See also [`SAOImageDS9.connect`](@ref), [`SAOImageDS9.get`](@ref) and
+`XPA.set`.
 
 """
 function set(args...; data=nothing)
@@ -291,12 +294,12 @@ _arraydescriptor(arr::DenseArray; kdws...) =
     error("only 2D and 3D arrays are supported")
 
 """
-    DS9.bitpix_of(x) -> bp
+    SAOImageDS9.bitpix_of(x) -> bp
 
 yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or a
 type.  A value of 0 is returned if `x` is not of a supported type.
 
-See also [`DS9.bitpix_to_type`](@ref).
+See also [`SAOImageDS9.bitpix_to_type`](@ref).
 
 """
 bitpix_of(::DenseArray{T}) where {T} = bitpix_of(T)
@@ -308,12 +311,12 @@ end
 bitpix_of(::Any) = 0
 
 """
-    DS9.bitpix_to_type(bp) -> T
+    SAOImageDS9.bitpix_to_type(bp) -> T
 
 yields Julia type corresponding to FITS bits-per-pixel (BITPIX) value `bp`.
 The value `Nothing` is returned if `bp` is unknown.
 
-See also [`DS9.bitpix_of`](@ref).
+See also [`SAOImageDS9.bitpix_of`](@ref).
 
 """
 bitpix_to_type(bitpix::Int) =
@@ -327,14 +330,14 @@ bitpix_to_type(bitpix::Integer) = bitpix_to_type(Int(bitpix))
 bitpix_to_type(::Any) = Nothing
 
 """
-    DS9.byte_order(endian)
+    SAOImageDS9.byte_order(endian)
 
 yields the byte order for retrieving the elements of a SAOImage/DS9 array.
 Argument can be one of the strings (or the equivalent symbol): `"big"` for most
 significant byte first, `"little"` for least significant byte first or
 `"native"` to yield the byte order of the machine.
 
-See also [`DS9.get`](@ref), [`DS9.set`](@ref).
+See also [`SAOImageDS9.get`](@ref), [`SAOImageDS9.set`](@ref).
 
 """
 byte_order(endian::Symbol) =
@@ -356,13 +359,13 @@ byte_order(endian::AbstractString) =
 # DRAWING
 
 """
-    DS9.draw(args...; kwds...)
+    SAOImageDS9.draw(args...; kwds...)
 
 draws something in SAOImage/DS9 application.  The operation depends on the type
 of the arguments.
 
 ---
-    DS9.draw(img; kwds...)
+    SAOImageDS9.draw(img; kwds...)
 
 displays image `img` (a 2-dimensional Julia array) in SAOImage/DS9.
 The following keywords are possible:
@@ -377,13 +380,13 @@ The following keywords are possible:
 - Keywords `min` and/or `max` can be used to specify the scale limits.
 
 ---
-    DS9.draw(pnt; kwds...)
+    SAOImageDS9.draw(pnt; kwds...)
 
-draws `pnt` as point(s) in SAOImage/DS9, `pnt` is a `Point`, an array or a tuple
-of `Point`.
+draws `pnt` as point(s) in SAOImage/DS9, `pnt` is a `Point`, an array or a
+tuple of `Point`.
 
 ---
-    DS9.draw(box; kwds...)
+    SAOImageDS9.draw(box; kwds...)
 
 draws `box` as rectangle(s) in SAOImage/DS9, `box` is a `BoundingBox`, an array
 or a tuple of `BoundingBox`.

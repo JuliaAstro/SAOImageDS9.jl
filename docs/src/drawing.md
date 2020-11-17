@@ -6,11 +6,11 @@ For instance, assuming `img` is a 2-dimensional Julia array, to display `img`
 as an image in SAOImage/DS9, call:
 
 ```julia
-DS9.draw(img; kwds...)
+SAOImageDS9.draw(img; kwds...)
 ```
 
-The main difference with `DS9.set(img)` is that a number of keywords are
-supported:
+The main difference with `SAOImageDS9.set(img)` is that a number of keywords
+are supported:
 
 - Use keyword `frame` to specify the frame number.
 
@@ -21,6 +21,7 @@ supported:
 
 - Use keywords `min` and/or `max` to specify the scale limits.
 
-The [`DS9.draw`](@ref) method can be called with other kinds of arguments such
-as instances (or array or tuple) of `TwoDimensional.Point` to draw point(s) or
-instances of `TwoDimensional.BoundingBox` to draw rectangle(s).
+The [`SAOImageDS9.draw`](@ref) method can be called with other kinds of
+arguments such as instances (or array or tuple) of `TwoDimensional.Point` to
+draw point(s) or instances of `TwoDimensional.BoundingBox` to draw
+rectangle(s).

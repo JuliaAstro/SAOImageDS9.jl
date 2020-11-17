@@ -3,28 +3,28 @@
 ## Requests to SAOImage/DS9
 
 ```@docs
-DS9.get
-DS9.set
+SAOImageDS9.get
+SAOImageDS9.set
 ```
 
 ## Connection
 
 ```@docs
-DS9.connect
-DS9.accesspoint
+SAOImageDS9.connect
+SAOImageDS9.accesspoint
 ```
 
 
 ## Drawing
 
 ```@docs
-DS9.draw
+SAOImageDS9.draw
 ```
 
 ## Utilities
 
 ```@docs
-DS9.bitpix_of
-DS9.bitpix_to_type
-DS9.byte_order
+SAOImageDS9.bitpix_of
+SAOImageDS9.bitpix_to_type
+SAOImageDS9.byte_order
 ```
