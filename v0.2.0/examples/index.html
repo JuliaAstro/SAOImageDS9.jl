@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Examples · Connecting to SAOImage/DS9</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link href="../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><a href="../index.html"><img class="logo" src="../assets/logo.png" alt="Connecting to SAOImage/DS9 logo"/></a><h1>Connecting to SAOImage/DS9</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../">Introduction</a></li><li><a class="toctext" href="../install/">Installation</a></li><li><a class="toctext" href="../starting/">Starting</a></li><li><a class="toctext" href="../requests/">SAOImage/DS9 requests</a></li><li><a class="toctext" href="../connect/">Connection to a specific server</a></li><li><a class="toctext" href="../drawing/">Drawing in SAOImage/DS9</a></li><li class="current"><a class="toctext" href>Examples</a><ul class="internal"><li><a class="toctext" href="#Basic-examples-1">Basic examples</a></li><li><a class="toctext" href="#Frame-settings-1">Frame settings</a></li><li><a class="toctext" href="#Other-examples-1">Other examples</a></li></ul></li><li><a class="toctext" href="../library/">Package library</a></li></ul></nav><article id="docs"><header><nav><ul><li><a href>Examples</a></li></ul><a class="edit-page" href="https://github.com/JuliaAstro/SAOImageDS9.jl/blob/master/docs/src/examples.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Examples</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="Examples-1" href="#Examples-1">Examples</a></h1><h2><a class="nav-anchor" id="Basic-examples-1" href="#Basic-examples-1">Basic examples</a></h2><pre><code class="language-julia">import SAOImageDS9
+using SAOImageDS9: TupleOf
+SAOImageDS9.connect()</code></pre><p>For a 512×861 image <code>img</code> with <code>Float32</code> pixels, <code>SAOImageDS9.set(img)</code> takes 8.502 ms (28 allocations: 1.30 KiB) while <code>SAOImageDS9.get(Array)</code> takes 5.844 ms (50 allocations: 1.68 MiB).</p><p>Query parameters of the image displayed in the current DS9 frame:</p><pre><code class="language-julia">SAOImageDS9.get(Int, &quot;fits width&quot;)         # get the width of the image
+SAOImageDS9.get(Int, &quot;fits height&quot;)        # get the height of the image
+SAOImageDS9.get(Int, &quot;fits depth&quot;)         # get the depth of the image
+SAOImageDS9.get(Int, &quot;fits bitpix&quot;)        # get the bits per pixel of the image
+SAOImageDS9.get(TupleOf{Int}, &quot;fits size&quot;) # get the dimensions of the image</code></pre><p>The dimensions are ordered as <code>width</code>, <code>height</code> and <code>depth</code>.</p><p>To retrieve or set the dimensions of the display window:</p><pre><code class="language-julia">SAOImageDS9.get(Int, &quot;width&quot;)    # get the width of the image display window
+SAOImageDS9.get(Int, &quot;height&quot;)   # get the height of the image display window
+SAOImageDS9.set(&quot;width&quot;, n)      # set the width of the image display window
+SAOImageDS9.set(&quot;height&quot;, n)     # set the height of the image display window</code></pre><p>Display an image and set the scale limits:</p><pre><code class="language-julia">SAOImageDS9.set(img)
+SAOImageDS9.set(&quot;scale limits&quot;, 0, maximum(img))</code></pre><h2><a class="nav-anchor" id="Frame-settings-1" href="#Frame-settings-1">Frame settings</a></h2><h3><a class="nav-anchor" id="Set-frame-settings-1" href="#Set-frame-settings-1">Set frame settings</a></h3><pre><code class="language-julia">SAOImageDS9.set(&quot;frame center&quot;)       # center current frame
+SAOImageDS9.set(&quot;frame center&quot;,1)     # center &#39;Frame1&#39;
+SAOImageDS9.set(&quot;frame center all&quot;)   # center all frames
+SAOImageDS9.set(&quot;frame clear&quot;)        # clear current frame
+SAOImageDS9.set(&quot;frame new&quot;)          # create new frame
+SAOImageDS9.set(&quot;frame new rgb&quot;)      # create new rgb frame
+SAOImageDS9.set(&quot;frame delete&quot;)       # delete current frame
+SAOImageDS9.set(&quot;frame reset&quot;)        # reset current frame
+SAOImageDS9.set(&quot;frame refresh&quot;)      # refresh current frame
+SAOImageDS9.set(&quot;frame hide&quot;)         # hide current frame
+SAOImageDS9.set(&quot;frame show&quot;,1)       # show frame &#39;Frame1&#39;
+SAOImageDS9.set(&quot;frame move first&quot;)   # move frame to first in order
+SAOImageDS9.set(&quot;frame move back&quot;)    # move frame back in order
+SAOImageDS9.set(&quot;frame move forward&quot;) # move frame forward in order
+SAOImageDS9.set(&quot;frame move last&quot;)    # move frame to last in order
+SAOImageDS9.set(&quot;frame first&quot;)        # goto first frame
+SAOImageDS9.set(&quot;frame prev&quot;)         # goto prev frame
+SAOImageDS9.set(&quot;frame next&quot;)         # goto next frame
+SAOImageDS9.set(&quot;frame last&quot;)         # goto last frame
+SAOImageDS9.set(&quot;frame frameno 4&quot;)    # goto frame &#39;Frame4&#39;,create if needed
+SAOImageDS9.set(&quot;frame&quot;, 3)           # goto frame &#39;Frame3&#39;,create if needed
+SAOImageDS9.set(&quot;frame match wcs&quot;)
+SAOImageDS9.set(&quot;frame lock wcs&quot;)</code></pre><h3><a class="nav-anchor" id="Get-frame-settings-1" href="#Get-frame-settings-1">Get frame settings</a></h3><pre><code class="language-julia">SAOImageDS9.get(Int, &quot;frame&quot;)            # returns the id of the current frame
+SAOImageDS9.get(Int, &quot;frame frameno&quot;)    # returns the id of the current frame
+SAOImageDS9.get(TupleOf{Int}, &quot;frame all&quot;)    # returns the id of all frames
+SAOImageDS9.get(TupleOf{Int}, &quot;frame active&quot;) # returns the id of all active frames
+SAOImageDS9.get(String, &quot;frame lock&quot;)
+SAOImageDS9.get(Bool, &quot;frame has amplifier&quot;)
+SAOImageDS9.get(Bool, &quot;frame has datamin&quot;)
+SAOImageDS9.get(Bool, &quot;frame has datasec&quot;)
+SAOImageDS9.get(Bool, &quot;frame has detector&quot;)
+SAOImageDS9.get(Bool, &quot;frame has grid&quot;)
+SAOImageDS9.get(Bool, &quot;frame has iis&quot;)
+SAOImageDS9.get(Bool, &quot;frame has irafmin&quot;)
+SAOImageDS9.get(Bool, &quot;frame has physical&quot;)
+SAOImageDS9.get(Bool, &quot;frame has smooth&quot;)
+SAOImageDS9.get(Bool, &quot;frame has contour&quot;)
+SAOImageDS9.get(Bool, &quot;frame has contour aux&quot;)
+SAOImageDS9.get(Bool, &quot;frame has fits&quot;)
+SAOImageDS9.get(Bool, &quot;frame has fits bin&quot;)
+SAOImageDS9.get(Bool, &quot;frame has fits cube&quot;)
+SAOImageDS9.get(Bool, &quot;frame has fits mosaic&quot;)
+SAOImageDS9.get(Bool, &quot;frame has marker highlite&quot;)
+SAOImageDS9.get(Bool, &quot;frame has marker paste&quot;)
+SAOImageDS9.get(Bool, &quot;frame has marker select&quot;)
+SAOImageDS9.get(Bool, &quot;frame has marker undo&quot;)
+SAOImageDS9.get(Bool, &quot;frame has system physical&quot;)
+SAOImageDS9.get(Bool, &quot;frame has wcs wcsa&quot;)
+SAOImageDS9.get(Bool, &quot;frame has wcs equatorial wcsa&quot;)
+SAOImageDS9.get(Bool, &quot;frame has wcs linear wcsa&quot;)</code></pre><h2><a class="nav-anchor" id="Other-examples-1" href="#Other-examples-1">Other examples</a></h2><p>Get <em>about</em> string:</p><pre><code class="language-julia">SAOImageDS9.get(String, &quot;about&quot;)</code></pre><p>Get version number:</p><pre><code class="language-julia">SAOImageDS9.get(VersionNumber, &quot;version&quot;)</code></pre><p>Exit SAOImage/DS9:</p><pre><code class="language-julia">SAOImageDS9.set(&quot;exit&quot;)</code></pre><p>Is SAOImage/DS9 iconified?</p><pre><code class="language-julia">SAOImageDS9.get(Bool, &quot;iconify&quot;)</code></pre><p>(De)iconify SAOImage/DS9:</p><pre><code class="language-julia">SAOImageDS9.set(&quot;iconify&quot;, bool)</code></pre><pre><code class="language-julia">SAOImageDS9.set(&quot;lower&quot;)
+SAOImageDS9.set(&quot;raise&quot;) # can be used to de-iconify</code></pre><p>Get/set zoom level:</p><pre><code class="language-julia">SAOImageDS9.get(Float64, &quot;zoom&quot;)  # get current zoom level
+SAOImageDS9.set(&quot;zoom&quot;, value)
+SAOImageDS9.set(&quot;zoom to&quot;, value)
+SAOImageDS9.set(&quot;zoom to fit&quot;)</code></pre><p>Rotation:</p><pre><code class="language-julia">SAOImageDS9.get(Float64, &quot;rotate&quot;)
+SAOImageDS9.set(&quot;rotate&quot;, value)
+SAOImageDS9.set(&quot;rotate to&quot;, value)
+SAOImageDS9.set(&quot;rotate open&quot;)
+SAOImageDS9.set(&quot;rotate close&quot;)</code></pre><pre><code class="language-julia">SAOImageDS9.get(String, &quot;orient&quot;)
+SAOImageDS9.set(&quot;orient&quot;, value)</code></pre><pre><code class="language-julia">#iexam(;event::Union{AbstractString,Symbol}=:button) = get_words(&quot;iexam&quot;, event)
+
+iexam(args...; event::Union{AbstractString,Symbol}=:button) =
+    get_words(&quot;iexam&quot;, event, args...)
+
+SAOImageDS9.get(Int, :threads)  # get threads
+SAOImageDS9.set(&quot;threads&quot;, n)</code></pre><footer><hr/><a class="previous" href="../drawing/"><span class="direction">Previous</span><span class="title">Drawing in SAOImage/DS9</span></a><a class="next" href="../library/"><span class="direction">Next</span><span class="title">Package library</span></a></footer></article></body></html>
