@@ -475,17 +475,67 @@ for id in (:circle, :ellipse, :box, :polygon, :point, :line,
     @eval _region(::$V, kwds::Pairs) = ($cmd, _set_options(kwds))
 end
 
+"""
+    SAOImageDS9.message([apt=SAOImageDS9.accesspoint(),] msg; cancel=false)
+
+displays a message dialog with text `msg` in SAOImage/DS9 application referred
+by `apt` and returns a boolean.  If keyword `cancel` is true, a *Cancel* button
+is added to the dialog and `false` maybe returned if the dialog is not closed
+by clicking the *OK* button; otherwise `true` is returned.
+
+"""
+message(msg::AbstractString; kwds...) =  message(_apt(), msg; kwds...)
+function message(apt, msg::AbstractString; cancel::Bool = false)
+    btn = (cancel ? "okcancel" : "ok")
+    cmd = "analysis message $btn {$msg}"
+    tryparse(Int, XPA.get(String, apt, cmd)) == 1
+end
+
+"""
+    SAOImageDS9.select([apt=SAOImageDS9.accesspoint(),];
+                       text="", key=false, cancel=false) -> (k,x,y,v)
+
+returns the position selected by the user in SAOImage/DS9 application referred
+by `apt`.  If keyword `text` is set, a dialog message is first displayed,
+possibly with a *Cancel* button if keyword `cancel` is true.  If keyword `key`
+is true, the position is selected by pressing a key; otherwise, the position is
+selected by clicking the first mouse button.  The result is either `nothing`
+(for instance if the *Cancel* button of the dialog is clicked) or a 4-tuple
+`(k,x,y,v)` with `k` the pressed key (an empty string if `key` is false),
+`(x,y)` are the coordinates of the selected position and `v` is the
+corresponding value in the data.
+
+"""
+function select(apt = _apt();
+                text::AbstractString = "",
+                cancel::Bool = false,
+                key::Bool = false)
+    if length(text) > 0
+        message(apt, text; cancel=cancel) || return nothing
+    end
+    cmd = (key ? "iexam key {\$x \$y \$value}" : "iexam {\$x \$y \$value}")
+    rep = split(XPA.get(String, apt, cmd))
+    off = (key ? 1 : 0)
+    length(rep) == 3+off || return nothing
+    k = (key ? string(rep[off+0]) : "")
+    x = tryparse(Float64, rep[off+1])
+    y = tryparse(Float64, rep[off+2])
+    v = tryparse(Float64, rep[off+3])
+    (x === nothing || y === nothing || v === nothing) && return nothing
+    return k, x, y, v
+end
+
 #------------------------------------------------------------------------------
 # LIMITS
 
 """
-    limits(A, cmin=nothing, cmax=nothing) -> (cminp, cmaxp)
+    limits(A, cmin=nothing, cmax=nothing) -> (lo, hi)
 
 yields the clipping limits of values in array `A`.  The result is a 2-tuple of
-double precision floats.  If `cmin` is `nothing`, `cminp` is the minimal finite
-value found in `A` and converted to `Cdouble`; otherwise `cminp =
-Cdouble(cmin)`.  If `cmax` is `nothing`, `cmaxp` is the maximal finite value
-found in `A` and converted to `Cdouble`; otherwise `cmaxp = Cdouble(cmax)`.
+double precision floats `(lo,hi)`.  If `cmin` is `nothing`, `lo` is the minimal
+finite value found in `A` and converted to `Cdouble`; otherwise `lo =
+Cdouble(cmin)`.  If `cmax` is `nothing`, `hi` is the maximal finite value found
+in `A` and converted to `Cdouble`; otherwise `hi = Cdouble(cmax)`.
 
 """
 limits(A::AbstractArray{<:Real}, ::Nothing, ::Nothing) =
