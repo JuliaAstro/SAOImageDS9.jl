@@ -1,22 +1,35 @@
 using Documenter
-
-push!(LOAD_PATH,"../src/")
 using SAOImageDS9
 
-DEPLOYDOCS = (get(ENV, "CI", nothing) == "true")
+setup = quote
+    using SAOImageDS9
+end
 
-makedocs(
-    sitename = "Connecting to SAOImage/DS9",
-    format = Documenter.HTML(
-        prettyurls = DEPLOYDOCS,
-    ),
+DocMeta.setdocmeta!(SAOImageDS9, :DocTestSetup, setup; recursive = true)
+
+makedocs(;
+    modules=[SAOImageDS9],
     authors = "Éric Thiébaut and contributors",
-    pages = ["index.md", "install.md", "starting.md", "requests.md",
-             "connect.md", "drawing.md", "examples.md", "library.md"]
+    repo="https://github.com/JuliaAstro/SAOImageDS9.jl/blob/{commit}{path}#L{line}",
+    sitename="SAOImageDS9.jl",
+    format=Documenter.HTML(;
+        prettyurls=get(ENV, "CI", "false") == "true",
+        canonical="https://juliaastro.github.io/SAOImageDS9.jl",
+        assets=String[],
+    ),
+    pages=[
+        "index.md",
+        "install.md",
+        "starting.md",
+        "requests.md",
+        "connect.md",
+        "drawing.md",
+        "examples.md",
+        "library.md"
+    ],
 )
 
-if DEPLOYDOCS
-    deploydocs(
-        repo = "github.com/JuliaAstro/SAOImageDS9.jl.git",
-    )
-end
+deploydocs(;
+    repo="github.com/JuliaAstro/SAOImageDS9.jl",
+    devbranch="master"
+)
