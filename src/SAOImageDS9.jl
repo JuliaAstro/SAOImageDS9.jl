@@ -367,9 +367,13 @@ byte_order(endian::AbstractString) =
 
 draws something in SAOImage/DS9 application.  The operation depends on the type
 of the arguments.
+"""
+draw(args...; kwds...) = draw(args; kwds...)
+draw(::Tuple{}; kwds...) = nothing
+draw(::T; kwds...) where {T} = error("unexpected type of argument(s): $T")
 
----
-    SAOImageDS9.draw(img; kwds...)
+"""
+    SAOImageDS9.draw(img::AbstractMatrix; kwds...)
 
 displays image `img` (a 2-dimensional Julia array) in SAOImage/DS9.
 The following keywords are possible:
@@ -382,24 +386,7 @@ The following keywords are possible:
 - Keyword `zoom` can be used to specify the zoom factor.
 
 - Keywords `min` and/or `max` can be used to specify the scale limits.
-
----
-    SAOImageDS9.draw(pnt; kwds...)
-
-draws `pnt` as point(s) in SAOImage/DS9, `pnt` is a `Point`, an array or a
-tuple of `Point`.
-
----
-    SAOImageDS9.draw(box; kwds...)
-
-draws `box` as rectangle(s) in SAOImage/DS9, `box` is a `BoundingBox`, an array
-or a tuple of `BoundingBox`.
-
 """
-draw(args...; kwds...) = draw(args; kwds...)
-draw(::Tuple{}; kwds...) = nothing
-draw(::T; kwds...) where {T} = error("unexpected type of argument(s): $T")
-
 function draw(img::AbstractMatrix;
               min::Union{Real,Nothing} = nothing,
               max::Union{Real,Nothing} = nothing,
@@ -422,6 +409,12 @@ end
 # does not really speed-up things and is more complicated because there is a
 # limit to the total length of an XPA command (given by XPA.SZ_LINE I guess).
 
+"""
+    SAOImageDS9.draw(pnt; kwds...)
+
+draws `pnt` as point(s) in SAOImage/DS9, `pnt` is a `Point`, an array or a
+tuple of `Point`.
+"""
 draw(A::Point; kwds...) = _draw(_region(Val(:point), kwds), A)
 function draw(A::Union{Tuple{Vararg{Point}},
                        AbstractArray{<:Point}}; kwds...)
@@ -431,6 +424,12 @@ function draw(A::Union{Tuple{Vararg{Point}},
     end
 end
 
+"""
+    SAOImageDS9.draw(box; kwds...)
+
+draws `box` as rectangle(s) in SAOImage/DS9, `box` is a `BoundingBox`, an array
+or a tuple of `BoundingBox`.
+"""
 draw(A::BoundingBox; kwds...) =  _draw(_region(Val(:polygon), kwds), A)
 function draw(A::Union{Tuple{Vararg{BoundingBox}},
                        AbstractArray{<:BoundingBox}}; kwds...)
