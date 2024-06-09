@@ -1,6 +1,4 @@
 using Documenter
-
-push!(LOAD_PATH,"../src/")
 using SAOImageDS9
 
 DEPLOYDOCS = (get(ENV, "CI", nothing) == "true")
