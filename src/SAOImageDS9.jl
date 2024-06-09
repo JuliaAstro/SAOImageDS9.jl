@@ -36,7 +36,11 @@ access point can be set by calling the [`SAOImageDS9.connect`](@ref) method.
 An empty string is returned if no access point has been chosen.  To
 automatically connect to SAOImage/DS9 if not yet done, you can do:
 
-    if SAOImageDS9.accesspoint() == ""; SAOImageDS9.connect(); end
+```julia
+if SAOImageDS9.accesspoint() == ""
+    SAOImageDS9.connect()
+end
+```
 
 See also [`SAOImageDS9.connect`](@ref) and [`SAOImageDS9.accesspoint`](@ref).
 

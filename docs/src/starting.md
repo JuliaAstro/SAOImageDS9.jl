@@ -9,7 +9,8 @@ using SAOImageDS9
 ```
 
 will import the symbol `DS9` which can be used to prefix all methods
-available in `SAOImageDS9` instead of the full package name which can be a bit tedious in interactive sessions.  If you prefer another prefix, say `sao`,
+available in `SAOImageDS9` instead of the full package name which can be a bit
+tedious in interactive sessions.  If you prefer another prefix, say `sao`,
 you can do:
 
 ```julia

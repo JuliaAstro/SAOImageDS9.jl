@@ -13,7 +13,7 @@ makedocs(
         prettyurls = DEPLOYDOCS,
     ),
     authors = "Éric Thiébaut and contributors",
-    pages = pages
+    pages = pages,
 )
 
 if DEPLOYDOCS
