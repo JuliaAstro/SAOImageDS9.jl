@@ -4,16 +4,16 @@ To use this package, the SAOImage/DS9 program and the
 [XPA](https://github.com/ericmandel/xpa) dynamic library and headers must be
 installed on your computer.  If this is not the case, they are available for
 different operating systems.  For example, on Debian or Ubuntu-like Linux
-system, you can call `apt-get` from the command line:
+system, you can call `apt` (or `apt-get` on older systems) from the command line:
 
 ```sh
-sudo apt-get install saods9 libxpa-dev
+sudo apt install saods9 libxpa-dev
 ```
 
-`SAOImageDS9` can be can be installed by Julia's package manager:
-
-```
-... pkg> add https://github.com/JuliaAstro/SAOImageDS9.jl
+`SAOImageDS9` can be can be installed by Julia's package manager. In the Julia
+REPL, press `]` to drop into package mode, then run
+```julia-repl
+pkg> add SAOImageDS9
 ```
 
 Another possibility from Julia's REPL or in a Julia script:
