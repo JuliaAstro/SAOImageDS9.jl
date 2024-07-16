@@ -15,4 +15,5 @@ makedocs(
 
 deploydocs(
     repo = "github.com/JuliaAstro/SAOImageDS9.jl.git",
+    push_preview = true,
 )
