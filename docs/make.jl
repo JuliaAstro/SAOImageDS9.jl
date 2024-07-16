@@ -4,7 +4,8 @@ using SAOImageDS9
 include("pages.jl")
 
 makedocs(
-    sitename = "Connecting to SAOImage/DS9",
+    modules = [SAOImageDS9],
+    sitename = "SAOImageDS9.jl",
     format = Documenter.HTML(),
     authors = "Éric Thiébaut and contributors",
     pages = pages,
