@@ -335,23 +335,27 @@ Argument can be one of the strings (or the equivalent symbol): `"big"` for most
 significant byte first, `"little"` for least significant byte first or
 `"native"` to yield the byte order of the machine.
 
-See also [`SAOImageDS9.get`](@ref), [`SAOImageDS9.set`](@ref).
-
+# See also
+[`SAOImageDS9.get`](@ref), [`SAOImageDS9.set`](@ref).
 """
-byte_order(endian::Symbol) =
-    (endian == :native ? (ENDIAN_BOM == 0x01020304 ? "big" :
-                          ENDIAN_BOM == 0x04030201 ? "little" :
-                          error("unknown byte order")) :
-     endian == :big ? "big" :
-     endian == :little ? "little" :
-     error("invalid byte order"))
-
-byte_order(endian::AbstractString) =
-    (endian == "native" ? (ENDIAN_BOM == 0x01020304 ? "big" :
-                           ENDIAN_BOM == 0x04030201 ? "little" :
-                           error("unknown byte order")) :
-     endian == "big" || endian == "little" ? endian :
-     error("invalid byte order"))
+function byte_order(endian::Symbol)
+    if endian == :native
+        if ENDIAN_BOM == 0x01020304
+            return "big"
+        elseif ENDIAN_BOM == 0x04030201
+            return "little"
+        else
+            error("unknown byte order")
+        end
+    elseif endian == :big
+        return "big"
+    elseif endian == :little
+        return "little"
+    else
+        error("invalid byte order")
+    end
+end
+byte_order(endian::AbstractString) = byte_order(Symbol(endian))
 
 #------------------------------------------------------------------------------
 # DRAWING
