@@ -297,8 +297,8 @@ _arraydescriptor(arr::DenseArray; kdws...) =
 yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or a
 type.  A value of 0 is returned if `x` is not of a supported type.
 
-See also [`SAOImageDS9.bitpix_to_type`](@ref).
-
+# See also
+[`SAOImageDS9.bitpix_to_type`](@ref)
 """
 bitpix_of(::DenseArray{T}) where {T} = bitpix_of(T)
 for T in PIXELTYPES
@@ -312,10 +312,10 @@ bitpix_of(::Any) = 0
     SAOImageDS9.bitpix_to_type(bp) -> T
 
 yields Julia type corresponding to FITS bits-per-pixel (BITPIX) value `bp`.
-The value `Nothing` is returned if `bp` is unknown.
+The type `Nothing` is returned if `bp` is unknown.
 
-See also [`SAOImageDS9.bitpix_of`](@ref).
-
+# See also
+[`SAOImageDS9.bitpix_of`](@ref)
 """
 bitpix_to_type(bitpix::Int) =
     (bitpix ==   8 ? UInt8   :
