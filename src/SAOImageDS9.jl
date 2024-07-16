@@ -256,10 +256,9 @@ function set(arr::DenseArray{T,N};
              endian::Symbol=:native,
              mask::Bool=false,
              new::Bool=false) where {T<:PixelTypes,N}
-    args = String[]
-    push!(args, "array")
-    if new; push!(args, "new"); end
-    if mask; push!(args, "mask"); end
+    args = String["array"]
+    new && push!(args, "new")
+    mask && push!(args, "mask")
     set(args..., _arraydescriptor(arr; endian=endian); data=arr)
 end
 
