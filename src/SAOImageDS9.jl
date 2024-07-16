@@ -13,7 +13,6 @@
 module SAOImageDS9
 
 export DS9
-
 const DS9 = SAOImageDS9
 
 using XPA
@@ -73,7 +72,6 @@ name of the access point.
 
 To retrieve the name of the current SAOImage/DS9 access point, call the
 [`SAOImageDS9.accesspoint`](@ref) method.
-
 """
 function connect(ident::Union{Regex,AbstractString} = "DS9:*"; kwds...)
     apt = XPA.find(ident; kwds...)
@@ -88,8 +86,7 @@ function connect(ident::Union{Regex,AbstractString} = "DS9:*"; kwds...)
     return addr
 end
 
-_warn(args...) = printstyled(stderr, "WARNING: ", args..., "\n";
-                             color=:yellow)
+_warn(args...) = printstyled(stderr, "WARNING: ", args..., "\n"; color=:yellow)
 
 """
     SAOImageDS9.get([T, [dims,]] args...)
@@ -202,8 +199,7 @@ function _parse(::Type{TupleOf{T}},
     return map(s -> _parse(T, s), list)
 end
 
-function _parse(::Type{TupleOf{T}},
-                str::AbstractString) where {T<:Real}
+function _parse(::Type{TupleOf{T}}, str::AbstractString) where {T<:Real}
     return Tuple(map(s -> _parse(T, s), split(str; keepempty=false)))
 end
 
@@ -245,7 +241,6 @@ set the contents of the current SAOImage/DS9 frame to be array `arr`.  Keyword
 
 See also [`SAOImageDS9.connect`](@ref), [`SAOImageDS9.get`](@ref) and
 `XPA.set`.
-
 """
 function set(args...; data=nothing)
     XPA.set(_apt(), join_arguments(args); nmax=1, throwerrors=true, data=data)
@@ -484,7 +479,6 @@ displays a message dialog with text `msg` in SAOImage/DS9 application referred
 by `apt` and returns a boolean.  If keyword `cancel` is true, a *Cancel* button
 is added to the dialog and `false` maybe returned if the dialog is not closed
 by clicking the *OK* button; otherwise `true` is returned.
-
 """
 message(msg::AbstractString; kwds...) =  message(_apt(), msg; kwds...)
 function message(apt, msg::AbstractString; cancel::Bool = false)
@@ -506,7 +500,6 @@ selected by clicking the first mouse button.  The result is either `nothing`
 `(k,x,y,v)` with `k` the pressed key (an empty string if `key` is false),
 `(x,y)` are the coordinates of the selected position and `v` is the
 corresponding value in the data.
-
 """
 function select(apt = _apt();
                 text::AbstractString = "",
@@ -538,7 +531,6 @@ double precision floats `(lo,hi)`.  If `cmin` is `nothing`, `lo` is the minimal
 finite value found in `A` and converted to `Cdouble`; otherwise `lo =
 Cdouble(cmin)`.  If `cmax` is `nothing`, `hi` is the maximal finite value found
 in `A` and converted to `Cdouble`; otherwise `hi = Cdouble(cmax)`.
-
 """
 limits(A::AbstractArray{<:Real}, ::Nothing, ::Nothing) =
     to_limits(finite_extrema(A))
@@ -563,7 +555,6 @@ to_limits(cmin::Real, cmax::Real) = to_limits(convert(Cdouble, cmin),
 yields the minimum and maximum finite values in array `A`.  The result is such
 that `vmin ≤ vmax` (both values being finite) unless there are no finite values
 in `A` in which case `vmin > vmax`.
-
 """
 finite_extrema(A::AbstractArray{<:Real}) = valid_extrema(isfinite, A)
 
@@ -572,7 +563,6 @@ finite_extrema(A::AbstractArray{<:Real}) = valid_extrema(isfinite, A)
 
 yields the minimum finite value in array `A`.  The result is never a NaN but
 may be `typemax(eltype(A))` if there are no finite values in `A`.
-
 """
 finite_minimum(A::AbstractArray{<:Real}) = valid_minimum(isfinite, A)
 
@@ -581,7 +571,6 @@ finite_minimum(A::AbstractArray{<:Real}) = valid_minimum(isfinite, A)
 
 yields the maximum finite value in array `A`.  The result is never a NaN but
 may be `typemin(eltype(A))` if there are no finite values in `A`.
-
 """
 finite_maximum(A::AbstractArray{<:Real}) = valid_maximum(isfinite, A)
 
@@ -593,7 +582,6 @@ those for which predicate `pred` yields `true`.  The result is such that `vmin
 ≤ vmax` (both values being valid) unless there are no valid values in `A` in
 which case `vmin > vmax`.  The predicate function is assumed to take care of
 NaN's.
-
 """
 function valid_extrema(pred, A::AbstractArray{T}) where {T}
     vmin = typemax(T)
@@ -614,7 +602,6 @@ yields the minimum valid value in array `A`.  Valid values are those for which
 predicate `pred` yields `true`.  The result is a valid value but may be
 `typemax(eltype(A))` if there are no valid values in `A`.  The predicate
 function is assumed to take care of NaN's.
-
 """
 function valid_minimum(pred, A::AbstractArray{T}) where {T}
     vmin = typemax(T)
@@ -633,7 +620,6 @@ yields the maximum valid value in array `A`.  Valid values are those for which
 predicate `pred` yields `true`.  The result is a valid value but may be
 `typemin(eltype(A))` if there are no valid values in `A`.  The predicate
 function is assumed to take care of NaN's.
-
 """
 function valid_maximum(pred, A::AbstractArray{T}) where {T}
     vmax = typemin(T)
