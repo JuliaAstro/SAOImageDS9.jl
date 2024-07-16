@@ -9,6 +9,8 @@ makedocs(
     format = Documenter.HTML(),
     authors = "Éric Thiébaut and contributors",
     pages = pages,
+    doctest = true,
+    checkdocs = :export,
 )
 
 deploydocs(
