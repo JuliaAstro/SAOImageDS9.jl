@@ -42,8 +42,8 @@ jobs:
         run: sudo apt-get install xvfb x11-xserver-utils
 
       - run: |
-          export DISPLAY=:1
-          Xvfb :1 -screen 0 1024x768x16 &
+          export DISPLAY=:4
+          Xvfb :4 -screen 0 1024x768x16 &
           julia --project=. --color=yes -e 'import Pkg; Pkg.test()'
 
       #- name: Setup xvfb for headless testing
