@@ -34,6 +34,7 @@ function ds9kill()
 end
 
 ds9start()
+@info "DS9 started successfully"
 
 @testset "Get requests" begin
     @test typeof(SAOImageDS9.get(VersionNumber)) === VersionNumber
