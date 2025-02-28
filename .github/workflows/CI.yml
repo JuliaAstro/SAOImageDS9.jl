@@ -41,4 +41,4 @@ jobs:
       - name: Setup xvfb for headless testing
         uses: coactions/setup-xvfb@v1.0.1
         with:
-          run: julia --project=. --color=yes -e 'import Pkg; Pkg.test()'
+          run: julia --project --color=yes test/runtests.jl
