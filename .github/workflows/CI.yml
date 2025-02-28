@@ -36,9 +36,17 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
 
       - name: Install DS9
-        run: sudo apt install saods9
+        run: sudo apt-get install saods9
 
-      - name: Setup xvfb for headless testing
-        uses: coactions/setup-xvfb@v1.0.1
-        with:
-          run: julia --project --color=yes test/runtests.jl
+      - name: Install xvfb
+        run: sudo apt-get install xvfb x11-server-utils
+
+      - run: |
+          export DISPLAY=:1
+          Xvfb :1 -screen 0 1024x768x16 &
+          julia --project=. --color=yes -e 'import Pkg; Pkg.test()'
+
+      #- name: Setup xvfb for headless testing
+      #  uses: coactions/setup-xvfb@v1.0.1
+      #  with:
+      #    run: julia --project --color=yes test/runtests.jl
