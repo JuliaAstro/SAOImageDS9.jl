@@ -36,4 +36,6 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - name: Install DS9
         run: sudo apt install saods9
+      - name: Setup xvfb for headless testing
+        uses: coactions/setup-xvfb@v1.0.1
       - uses: julia-actions/julia-runtest@v1
