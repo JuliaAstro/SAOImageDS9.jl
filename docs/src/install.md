@@ -20,7 +20,9 @@ Another possibility from Julia's REPL or in a Julia script:
 
 ```julia
 using Pkg
-Pkg.add(PackageSpec(url="https://github.com/JuliaAstro/SAOImageDS9.jl", rev="master"))
+Pkg.add("SAOImageDS9")
+# or
+Pkg.add(PackageSpec(name="SAOImageDS9", rev="master"))
 ```
 
 See [XPA.jl site](https://github.com/JuliaAstro/XPA.jl) for instructions about

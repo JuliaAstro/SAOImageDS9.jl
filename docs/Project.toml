@@ -4,3 +4,6 @@ SAOImageDS9 = "dbce9b26-8eb4-4825-964b-d4940cf8daff"
 
 [compat]
 Documenter = "1"
+
+[sources.SAOImageDS9]
+path = ".."

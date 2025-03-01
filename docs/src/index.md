@@ -10,9 +10,15 @@ Messaging System](https://github.com/ericmandel/xpa).
 ## Table of contents
 
 ```@contents
-Pages = ["install.md", "starting.md", "requests.md",
-         "connect.md", "drawing.md", "examples.md",
-         "library.md"]
+Pages = [
+    "install.md",
+    "starting.md",
+    "requests.md",
+    "connect.md",
+    "drawing.md",
+    "examples.md",
+    "library.md",
+]
 ```
 
 

@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: ['master']
+    tags: ['*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+
+    # until xvfb is configured to run with CI properly, this workflow is disabled
+    if: false
+
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
+      actions: write
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        version:
+          - '1.6'
+          - '1'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+          - x86
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ matrix.version }}
+          arch: ${{ matrix.arch }}
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+
+      - name: Install DS9
+        run: sudo apt-get install saods9
+
+      - name: Install xvfb
+        run: sudo apt-get install xvfb x11-xserver-utils
+
+      - run: |
+          export DISPLAY=:4
+          Xvfb :4 -screen 0 1024x768x16 &
+          julia --project=. --color=yes -e 'import Pkg; Pkg.test()'
+
+      #- name: Setup xvfb for headless testing
+      #  uses: coactions/setup-xvfb@v1.0.1
+      #  with:
+      #    run: julia --project --color=yes test/runtests.jl

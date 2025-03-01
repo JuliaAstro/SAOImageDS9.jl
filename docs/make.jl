@@ -1,21 +1,19 @@
 using Documenter
 using SAOImageDS9
 
-DEPLOYDOCS = (get(ENV, "CI", nothing) == "true")
-
 include("pages.jl")
 
 makedocs(
-    sitename = "Connecting to SAOImage/DS9",
-    format = Documenter.HTML(
-        prettyurls = DEPLOYDOCS,
-    ),
+    modules = [SAOImageDS9],
+    sitename = "SAOImageDS9.jl",
+    format = Documenter.HTML(),
     authors = "Éric Thiébaut and contributors",
     pages = pages,
+    doctest = true,
+    checkdocs = :export,
 )
 
-if DEPLOYDOCS
-    deploydocs(
-        repo = "github.com/JuliaAstro/SAOImageDS9.jl.git",
-    )
-end
+deploydocs(
+    repo = "github.com/JuliaAstro/SAOImageDS9.jl.git",
+    push_preview = true,
+)
