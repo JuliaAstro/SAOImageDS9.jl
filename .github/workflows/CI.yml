@@ -11,9 +11,6 @@ jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
 
-    # until xvfb is configured to run with CI properly, this workflow is disabled
-    if: false
-
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
     permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
@@ -22,14 +19,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version:
-          - '1.6'
-          - '1'
-        os:
-          - ubuntu-latest
-        arch:
-          - x64
-          - x86
+        version: ['1.6', '1']
+        os: [ubuntu-latest]
+        arch: [x64, x86]
     steps:
       - uses: actions/checkout@v4
       - uses: julia-actions/setup-julia@v2
@@ -45,10 +37,17 @@ jobs:
       - name: Install xvfb
         run: sudo apt-get install xvfb x11-xserver-utils
 
-      - run: |
+      - name: Test SAOImageDS9 with Xvfb
+        # until xvfb is configured to run with CI properly, this step is disabled
+        if: false
+        run: |
           export DISPLAY=:4
           Xvfb :4 -screen 0 1024x768x16 &
-          julia --project=. --color=yes -e 'import Pkg; Pkg.test()'
+          julia --project=@. --color=yes -e 'import Pkg; Pkg.test()'
+
+      - name: Test SAOImageDS9 import
+        shell: julia --project=@. --color=yes {0}
+        run: using SAOImageDS9
 
       #- name: Setup xvfb for headless testing
       #  uses: coactions/setup-xvfb@v1.0.1
