@@ -8,7 +8,7 @@ TwoDimensional = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
 XPA = "d310a076-6a08-52b6-ab78-79baa254182b"
 
 [compat]
-TwoDimensional = "0.2, 0.5"
+TwoDimensional = "0.2, 0.3, 0.4, 0.5"
 XPA = "0.2"
 julia = "1.3"
 
