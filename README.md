@@ -6,9 +6,9 @@ viewer [SAOImage/DS9](http://ds9.si.edu/site/Home.html) via
 Messaging System](https://github.com/ericmandel/xpa).
 
 
-| **Documentation**               | **License**                     | **Build Status**              |
-|:-------------------------------:|:-------------------------------:|:-----------------------------:|
-| [![][doc-dev-img]][doc-dev-url] | [![][license-img]][license-url] | [![][travis-img]][travis-url] |
+| **Documentation**                                                     | **License**                     | **Build Status**              |
+|:---------------------------------------------------------------------:|:-------------------------------:|:-----------------------------:|
+| [![][doc-stable-img]][doc-stable-url] [![][doc-dev-img]][doc-dev-url] | [![][license-img]][license-url] | [![][ci-img]][ci-url] |
 
 [doc-stable-img]: https://img.shields.io/badge/docs-stable-blue.svg
 [doc-stable-url]: https://JuliaAstro.github.io/SAOImageDS9.jl/stable
@@ -19,8 +19,8 @@ Messaging System](https://github.com/ericmandel/xpa).
 [license-url]: ./LICENSE.md
 [license-img]: http://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat
 
-[travis-img]: https://travis-ci.org/JuliaAstro/SAOImageDS9.jl.svg?branch=master
-[travis-url]: https://travis-ci.org/JuliaAstro/SAOImageDS9.jl
+[ci-img]: https://github.com/JuliaAstro/SAOImageDS9.jl/actions/workflows/CI.yml/badge.svg
+[ci-url]: https://github.com/JuliaAstro/SAOImageDS9.jl/actions/workflows/CI.yml
 
 [appveyor-img]: https://ci.appveyor.com/api/projects/status/github/JuliaAstro/SAOImageDS9.jl?branch=master
 [appveyor-url]: https://ci.appveyor.com/project/JuliaAstro/SAOImageDS9-jl/branch/master
