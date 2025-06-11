@@ -1,7 +1,7 @@
 name = "SAOImageDS9"
 uuid = "dbce9b26-8eb4-4825-964b-d4940cf8daff"
 authors = ["Éric Thiébaut <https://github.com/emmt>"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
