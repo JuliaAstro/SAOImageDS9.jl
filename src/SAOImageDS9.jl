@@ -47,8 +47,8 @@ See also [`SAOImageDS9.connect`](@ref) and [`SAOImageDS9.accesspoint`](@ref).
 const _ACCESSPOINT = Ref("")
 accesspoint() = _ACCESSPOINT[]
 
-# Same as `connection()` but attempt to automatically connect an access point
-# has not yet been chosen.
+# Same as `connection()` but attempt to automatically connect an access point has not yet
+# been chosen.
 function _apt() # @btime -> 3.706 ns (0 allocations: 0 bytes)
     apt = accesspoint()
     if apt == ""
@@ -65,13 +65,13 @@ end
 """
     SAOImageDS9.connect(ident="DS9:*") -> apt
 
-set the access point for further SAOImage/DS9 commands.  Argument `ident`
-identifies the XPA access point, it can be a template string like `"DS9:*"`
-which is the default value or a regular expression.  The returned value is the
-name of the access point.
+set the access point for further SAOImage/DS9 commands. Argument `ident` identifies the
+XPA access point, it can be a template string like `"DS9:*"` which is the default value or
+a regular expression. The returned value is the name of the access point.
 
 To retrieve the name of the current SAOImage/DS9 access point, call the
 [`SAOImageDS9.accesspoint`](@ref) method.
+
 """
 function connect(ident::Union{Regex,AbstractString} = "DS9:*"; kwds...)
     apt = XPA.find(ident; kwds...)
@@ -294,11 +294,11 @@ _arraydescriptor(arr::DenseArray; kdws...) =
 """
     SAOImageDS9.bitpix_of(x) -> bp
 
-yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or a
-type.  A value of 0 is returned if `x` is not of a supported type.
+yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or a type. A value
+of 0 is returned if `x` is not of a supported type.
 
-# See also
-[`SAOImageDS9.bitpix_to_type`](@ref)
+See also [`SAOImageDS9.bitpix_to_type`](@ref).
+
 """
 bitpix_of(::DenseArray{T}) where {T} = bitpix_of(T)
 for T in PIXELTYPES
@@ -311,11 +311,11 @@ bitpix_of(::Any) = 0
 """
     SAOImageDS9.bitpix_to_type(bp) -> T
 
-yields Julia type corresponding to FITS bits-per-pixel (BITPIX) value `bp`.
-The type `Nothing` is returned if `bp` is unknown.
+yields Julia type corresponding to FITS bits-per-pixel (BITPIX) value `bp`. The type
+`Nothing` is returned if `bp` is unknown.
 
-# See also
-[`SAOImageDS9.bitpix_of`](@ref)
+See also [`SAOImageDS9.bitpix_of`](@ref).
+
 """
 bitpix_to_type(bitpix::Int) =
     (bitpix ==   8 ? UInt8   :
@@ -330,10 +330,10 @@ bitpix_to_type(::Any) = Nothing
 """
     SAOImageDS9.byte_order(endian)
 
-yields the byte order for retrieving the elements of a SAOImage/DS9 array.
-Argument can be one of the strings (or the equivalent symbol): `"big"` for most
-significant byte first, `"little"` for least significant byte first or
-`"native"` to yield the byte order of the machine.
+yields the byte order for retrieving the elements of a SAOImage/DS9 array. Argument can be
+one of the strings (or the equivalent symbol): `"big"` for most significant byte first,
+`"little"` for least significant byte first or `"native"` to yield the byte order of the
+machine.
 
 # See also
 [`SAOImageDS9.get`](@ref), [`SAOImageDS9.set`](@ref).
@@ -495,15 +495,14 @@ end
     SAOImageDS9.select([apt=SAOImageDS9.accesspoint(),];
                        text="", key=false, cancel=false) -> (k,x,y,v)
 
-returns the position selected by the user in SAOImage/DS9 application referred
-by `apt`.  If keyword `text` is set, a dialog message is first displayed,
-possibly with a *Cancel* button if keyword `cancel` is true.  If keyword `key`
-is true, the position is selected by pressing a key; otherwise, the position is
-selected by clicking the first mouse button.  The result is either `nothing`
-(for instance if the *Cancel* button of the dialog is clicked) or a 4-tuple
-`(k,x,y,v)` with `k` the pressed key (an empty string if `key` is false),
-`(x,y)` are the coordinates of the selected position and `v` is the
-corresponding value in the data.
+returns the position selected by the user in SAOImage/DS9 application referred by `apt`.
+If keyword `text` is set, a dialog message is first displayed, possibly with a *Cancel*
+button if keyword `cancel` is true. If keyword `key` is true, the position is selected by
+pressing a key; otherwise, the position is selected by clicking the first mouse button.
+The result is either `nothing` (for instance if the *Cancel* button of the dialog is
+clicked) or a 4-tuple `(k,x,y,v)` with `k` the pressed key (an empty string if `key` is
+false), `(x,y)` are the coordinates of the selected position and `v` is the corresponding
+value in the data.
 """
 function select(apt = _apt();
                 text::AbstractString = "",
@@ -524,17 +523,32 @@ function select(apt = _apt();
     return k, x, y, v
 end
 
+function cube(; apt=_apt())
+    get_and_parse(Int, apt, "cube")
+end
+function cube(z::Integer; apt=_apt())
+    XPA.set(apt, "cube $z")
+end
+
+function cube_interval(; apt=_apt())
+    get_and_parse(Float64, apt, "cube interval")
+end
+function cube_interval(dt::Real; apt=_apt())
+    XPA.set(apt, "cube interval $dt")
+end
+
 #------------------------------------------------------------------------------
 # LIMITS
 
 """
-    limits(A, cmin=nothing, cmax=nothing) -> (lo, hi)
+    SAOImageDS9.limits(A, cmin=nothing, cmax=nothing) -> (lo, hi)
 
-yields the clipping limits of values in array `A`.  The result is a 2-tuple of
-double precision floats `(lo,hi)`.  If `cmin` is `nothing`, `lo` is the minimal
-finite value found in `A` and converted to `Cdouble`; otherwise `lo =
-Cdouble(cmin)`.  If `cmax` is `nothing`, `hi` is the maximal finite value found
-in `A` and converted to `Cdouble`; otherwise `hi = Cdouble(cmax)`.
+yields the clipping limits of values in array `A`. The result is a 2-tuple of double
+precision floats `(lo,hi)`. If `cmin` is `nothing`, `lo` is the minimal finite value found
+in `A` and converted to `Cdouble`; otherwise `lo = Cdouble(cmin)`. If `cmax` is `nothing`,
+`hi` is the maximal finite value found in `A` and converted to `Cdouble`; otherwise `hi =
+Cdouble(cmax)`.
+
 """
 limits(A::AbstractArray{<:Real}, ::Nothing, ::Nothing) =
     to_limits(finite_extrema(A))
