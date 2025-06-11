@@ -56,7 +56,7 @@ function _apt() # @btime -> 3.706 ns (0 allocations: 0 bytes)
             apt = connect()
         catch err
             _warn("Failed to automatically connect to SAOImage/DS9.\n",
-                  "Launch ds9 then do `ds9connect()`")
+                  "Launch ds9 then call `SAOImageDS9.connect()`")
         end
     end
     return apt
@@ -335,8 +335,8 @@ one of the strings (or the equivalent symbol): `"big"` for most significant byte
 `"little"` for least significant byte first or `"native"` to yield the byte order of the
 machine.
 
-# See also
-[`SAOImageDS9.get`](@ref), [`SAOImageDS9.set`](@ref).
+See also [`SAOImageDS9.get`](@ref), [`SAOImageDS9.set`](@ref).
+
 """
 function byte_order(endian::Symbol)
     if endian == :native
@@ -503,6 +503,9 @@ The result is either `nothing` (for instance if the *Cancel* button of the dialo
 clicked) or a 4-tuple `(k,x,y,v)` with `k` the pressed key (an empty string if `key` is
 false), `(x,y)` are the coordinates of the selected position and `v` is the corresponding
 value in the data.
+
+Call `[SAOImageDS9.cube](@ref)()` to retrieve the index along the *depth* (Z) axis.
+
 """
 function select(apt = _apt();
                 text::AbstractString = "",
