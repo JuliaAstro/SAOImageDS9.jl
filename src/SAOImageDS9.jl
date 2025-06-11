@@ -392,8 +392,8 @@ function draw(img::AbstractMatrix;
               frame = nothing,
               zoom = nothing)
     # FIXME: pack all commands into a single one.
-    frame === nothing || ds9set("frame", frame)
-    zoom === nothing || ds9set("zoom to", zoom)
+    frame === nothing || set("frame", frame)
+    zoom === nothing || set("zoom to", zoom)
     set(img)
     if min !== nothing || max !== nothing
         set("scale limits", limits(img, min, max)...)
@@ -472,7 +472,7 @@ for id in (:circle, :ellipse, :box, :polygon, :point, :line,
            :vector, :text, :ruler, :compass, :projection, :annulus,
            :panda, :epanda, :bpanda)
     V = Val{id}
-    cmd = "regions command { $id"
+    cmd = "region command { $id"
     @eval _region(::$V, kwds::Pairs) = ($cmd, _set_options(kwds))
 end
 
