@@ -783,4 +783,139 @@ function valid_maximum(pred, A::AbstractArray{T}) where {T}
 end
 valid_maximum(::typeof(isfinite), A::AbstractRange{<:Real}) = maximum(A)
 
+
+"""
+    ds9wcs([access_point]; useheader=true)
+
+Return the WCS transformation of the current image in the DS9 window.
+
+# Keyword Arguments
+- `useheader`: if `true`, the WCS is extracted from the FITS header. If
+  `false`, the WCS is extracted from the DS9 window.
+"""
+function ds9wcs(ap::AccessPoint=_apt(); useheader=true)
+    wcskeys = r"^(WCSAXES |CRPIX.  |CRVAL.  |CTYPE.  |CDELT.  |PC._.   |CD._.   |PV._.   |RADESYS |LATPOLE |LONPOLE |CUNIT.  )="
+    if useheader
+        reply = XPA.get(ap, "fits header")
+        header = XPA.get_data(String, reply)
+    else
+        path = tempname()
+        reply = XPA.set(XPA.address(ap), "wcs save $path")
+        header = open(path) do f
+            read(f, String)
+        end
+        rm(path, force=true)
+    end
+    filter(startswith(wcskeys), split(header, "\n"))
+end
+
+"""
+    ds9getregions([access_point,] name=""; coords=:image, selected=false)
+
+Return the regions defined in the DS9 window.
+
+The optional argument `name` is the name of the group of regions to extract.
+If `name` is an empty string, all regions are extracted.
+
+# Keyword Arguments
+- `ident`: the identifier of the DS9 window.
+- `coords`: the type of coordinates to return: can be `:image`, `:physical`,
+  `:fk5`, `:galactic`
+
+The return value is a vector of 3-tuples `(shape, coordinates, properties)`,
+where `shape` is a symbol indicating shape of the region, `coordinates` is an
+array of coordinates, and `properties` is a dictionary with the properties of
+the region. Note that the code parses as much as possible the properties:
+therefore, the returned dictionary can include a variety of different value
+types, depending on the keyword. The followin rules applies
+
+- the global properties are always _merged_ to the more specific region
+  properties;
+- properties with boolean meaning, such as `:select`, `:edit`, or `:rotate`
+  are suitably converted to `true` or `false`;
+- properties enclosed within single quotes ('...'), double quotes ("..."), or
+  braces ({...}) are returned as strings with the boundary markers removed;
+- since a region can contain multiple tag specifications, the `:tag` property
+  is always returned as an array of strings;
+- properties consisting of multiple elements, such as `:dash`, `:line`, and
+  `:point` are returned as tuples.
+"""
+function ds9getregions(ap::AccessPoint, name::String; coords=:image, selected=false)
+    function parsevalue(prop, value)
+        r = tryparse(Int, value)
+        if r === nothing
+            r = tryparse(Float64, value)
+            if r === nothing
+                r = value
+            end
+        end
+        if prop ∈ [:delete, :highlite, :edit, :move, :rotate, :include, :select, :fixed,
+            :source, :dash, :fill]
+            r = (r == 1) 
+        end
+        r
+    end
+    function parseproperties!(props, line)
+        regexp = r"\b([_A-Za-z]\w*)\b(?:=([0-9 ]*[0-9]+|\b[\w.]+\b(?:\s+[0-9]+\b)?|{[^}]*}|\"[^\"]*\"|\'[^\']*\'))?"
+        for m ∈ eachmatch(regexp, line)
+            prop = Symbol(m.captures[1])
+            value = m.captures[2]
+            if value === nothing
+                if prop == :background
+                    props[:source] = false
+                else
+                    props[prop] = true
+                end
+            elseif prop == :dashlist
+                props[prop] = tuple(tryparse.(Int, split(value))...)
+            elseif prop == :line
+                props[prop] = tuple(parsevalue.(Ref(prop), split(value))...)
+            elseif length(value) > 1 && ((value[1] == value[end] == '"') || 
+                    (value[1] == value[end] == '\'') || (value[1] == '{' && value[end] == '}'))
+                if prop == :tag
+                    if haskey(props, :tag) 
+                        push!(props[:tag], value[2:end-1])
+                    else
+                        props[prop] = String[value[2:end-1]]
+                    end
+                else
+                    props[prop] = value[2:end-1]
+                end
+            else
+                props[prop] = parsevalue(prop, value)
+            end
+        end
+        props
+    end
+
+    # Query DS9 for the regions and the selections
+    group = (name != "") ? "-group $name" : ""
+    sel = selected ? "selected" : ""
+    reply = XPA.get(ap, "regions $sel -format ds9 $group -system $coords")
+    regs = split(XPA.get_data(String, reply), "\n")
+    # Extract the global settings
+    global_lines = filter(line -> startswith(line, "global "), regs)
+    global_props = Dict{Symbol,Any}()
+    for line in global_lines
+        parseproperties!(global_props, line[8:end])
+    end
+    regions = Tuple{Symbol,Vector{Float64},Dict{Symbol,Any}}[]
+    for line ∈ regs
+        m = match(r"^\s*([-+]?)(circle|ellipse|box|polygon|point|line|vector|segment|text|ruler|compass|projection|annulus|panda|epanda|bpanda|composite)\(([^)]+)\)\s*(#.*)?$", line)
+        if m !== nothing
+            include = m.captures[1] != "-"
+            shape = Symbol(m.captures[2])
+            coords = parse.(Float64, split(m.captures[3], ","))
+            comment = isnothing(m.captures[4]) ? "" : m.captures[4][2:end]
+            local_props = copy(global_props)
+            local_props[:include] = include
+            parseproperties!(local_props, comment)
+            push!(regions, (shape, coords, local_props))
+        end
+    end
+    return regions
+end
+@inline ds9getregions(name::String=""; kw...) = ds9getregions(_apt(), name; kw...)
+
+
 end # module
