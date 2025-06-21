@@ -16,9 +16,12 @@ export DS9
 const DS9 = SAOImageDS9
 
 using XPA
-using XPA: TupleOf, connection, join_arguments
+using XPA: AccessPoint, TupleOf, connection, join_arguments
 
 using TwoDimensional
+
+import REPL
+using REPL.TerminalMenus
 
 using Base: ENV
 using Base.Iterators: Pairs
@@ -28,52 +31,63 @@ const PixelTypes = Union{UInt8,Int16,Int32,Int64,Float32,Float64}
 const PIXELTYPES = (UInt8, Int16, Int32, Int64, Float32, Float64)
 
 """
-    SAOImageDS9.accesspoint()
+    accesspoint::Uniont{XPA.AccessPoint,Nothing}
 
-yields the XPA access point which identifies the SAOImage/DS9 server.  This
-access point can be set by calling the [`SAOImageDS9.connect`](@ref) method.
-An empty string is returned if no access point has been chosen.  To
-automatically connect to SAOImage/DS9 if not yet done, you can do:
+The current XPA access point to the SAOImage/DS9 server.
+
+This access point can be set by calling the [`SAOImageDS9.connect`](@ref)
+method. If no access point has been chosen this variable is set to `nothing`.
+To automatically connect to SAOImage/DS9 if not yet done, you can do:
 
 ```julia
-if SAOImageDS9.accesspoint() == ""
+if isnothing(SAOImageDS9.accesspoint)
     SAOImageDS9.connect()
 end
 ```
 
-See also [`SAOImageDS9.connect`](@ref) and [`SAOImageDS9.accesspoint`](@ref).
-
-""" accesspoint
-const _ACCESSPOINT = Ref("")
-accesspoint() = _ACCESSPOINT[]
-
-# Same as `connection()` but attempt to automatically connect an access point
-# has not yet been chosen.
-function _apt() # @btime -> 3.706 ns (0 allocations: 0 bytes)
-    apt = accesspoint()
-    if apt == ""
-        try
-            apt = connect()
-        catch err
-            _warn("Failed to automatically connect to SAOImage/DS9.\n",
-                  "Launch ds9 then do `ds9connect()`")
-        end
-    end
-    return apt
-end
+See also [`SAOImageDS9.connect`](@ref).
+"""
+accesspoint::Union{AccessPoint,Nothing} = nothing
 
 """
-    SAOImageDS9.connect(ident="DS9:*") -> apt
+    _apt()
 
-set the access point for further SAOImage/DS9 commands.  Argument `ident`
-identifies the XPA access point, it can be a template string like `"DS9:*"`
-which is the default value or a regular expression.  The returned value is the
-name of the access point.
+The default access point.
+
+This function just returns [`access_point`](@ref) if this variable is set, or
+establishes a new connection using [`connect`](@ref).
+"""
+function _apt()
+    global accesspoint
+    if isnothing(accesspoint)
+        try
+            accesspoint = connect()
+        catch
+            @warn """Failed to automatically connect to SAOImage/DS9. 
+                Launch ds9 then do `ds9connect()`"""
+        end
+    end
+    accesspoint
+end
+
+
+"""
+    SAOImageDS9.connect(ident="DS9:*"; method="local") -> apt
+
+Set the access point for further SAOImage/DS9 commands.
+    
+The argument `ident` identifies the XPA access point: it can be a template
+string like `"DS9:*"` which is the default value or a regular expression.  The
+returned value is the name of the access point.
 
 To retrieve the name of the current SAOImage/DS9 access point, call the
 [`SAOImageDS9.accesspoint`](@ref) method.
 """
-function connect(ident::Union{Regex,AbstractString} = "DS9:*"; kwds...)
+function connect(ident::Union{Regex,AbstractString} = "DS9:*"; method="local", kwds...)
+    global accesspoint
+    if !haskey(ENV, "XPA_METHOD") && !isnothing(method)
+        ENV["XPA_METHOD"] = string(method)
+    end
     apt = XPA.find(ident; kwds...)
     apt === nothing && error("no matching SAOImage/DS9 server found")
     rep = XPA.get(apt, "version"; nmax=1)
@@ -81,106 +95,212 @@ function connect(ident::Union{Regex,AbstractString} = "DS9:*"; kwds...)
         error("XPA server at address \"" * apt *
               "\" does not seem to be a SAOImage/DS9 server")
     end
-    addr = XPA.address(apt)
-    _ACCESSPOINT[] = addr
-    return addr
+    accesspoint = apt
 end
 
-_warn(args...) = printstyled(stderr, "WARNING: ", args..., "\n"; color=:yellow)
 
 """
-    SAOImageDS9.get([T, [dims,]] args...)
+    ds9select(ident="DS9:*"; method="local"; silent=false, interactive=true)
 
-sends a "get" request to the SAOImage/DS9 server.  The request is made of
-arguments `args...` converted into strings and merged with separating spaces.
-An exception is thrown in case of error.
+Select a DS9 window for further interactions.
+
+If multiple DS9 windows match the `ident`, the user can select the correct
+window using a simple interface; if `interactive=false` the first matching
+window is selected.
+
+!!! warning
+    If `method` is not `undefined`, the environment variable `XPA_METHOD` is set
+    to the corresponding string. Typically the most reliable connection is
+    `local`, the default value.
+"""
+function ds9select(ident::Union{Regex,AbstractString}="DS9:*"; method="local",
+    silent=false, interactive=true)
+    global accesspoint
+    if !haskey(ENV, "XPA_METHOD") && !isnothing(method)
+        ENV["XPA_METHOD"] = string(method)
+    end
+    i = findfirst(isequal(':'), ident)
+    if i === nothing
+        # allow any class
+        class = "*"
+        name = ident
+    else
+        class = ident[1:i-1]
+        name = ident[i+1:end]
+    end
+    apts = XPA.list()
+    good_apts = filter(a -> (name == "*" || name == a.name) && (class == "*" || class == a.class), apts)
+    if length(good_apts) == 0
+        if !silent
+            @error "No valid XPA access point found (server not reachable?)"
+        end
+        return nothing
+    else
+        if length(good_apts) == 1 || !interactive
+            choice = 1
+        else
+            menu = RadioMenu(["$(p.class):$(p.name) (user=$(p.user))" for p ∈ apts])
+            choice = request("Please select the correct access point:", menu)
+            if choice == -1
+                return nothing
+            end
+        end
+        if !silent
+            class = good_apts[choice].class
+            name = good_apts[choice].name
+            user = good_apts[choice].user
+            @info "Connected to the XPA access point $class:$name (user=$user)"
+        end
+        accesspoint = good_apts[choice]
+        return nothing
+    end
+end
+
+"""
+    ds9([name]; method="local", path="ds9")
+
+Launch the DS9 application.
+
+By default the application will be named using the current PID.
+
+The `method` optional keywords is used to set the XPA communication method:
+"local" is the recommended way for local executions.
+
+This function authomaticall sets the default access point, so that all further
+requests are forwarded to the newly open DS9 window.
+"""
+function ds9(name::String=string(getpid()); method="local", path="ds9", silent=false)
+    global accesspoint
+    if !haskey(ENV, "XPA_METHOD") && !isnothing(method)
+        ENV["XPA_METHOD"] = string(method)
+    end
+    command = detach(`$path -xpa yes -xpa connect -title $name`)
+    run(command; wait=false)
+    if !silent
+        printstyled("[ Info: "; color=Base.default_color_info, bold=true)
+        print("Opening DS9")
+    end
+    for i ∈ 1:20
+        silent || print(".")
+        sleep(0.4)
+        apt = XPA.find("DS9:$name")
+        if !isnothing(apt)
+            accesspoint = apt
+            silent || println(" done")
+            return
+        end
+    end
+    silent || println(" failed")
+    @warn "Timeout establishing an XPA connection."
+end
+
+
+"""
+    get([accesspoint,] [T, [dims,]] args...)
+
+Send a "get" request to the SAOImage/DS9 server.
+
+The request is made of arguments `args...` converted into strings and merged
+with separating spaces.
 
 The returned value depends on the optional arguments `T` and `dims`:
 
-* If neither `T` nor `dims` are specified, an instance of `XPA.Reply` is
-  returned with at most one answer (see documentation for `XPA.get` for more
-  details).
-
+* If neither `T` nor `dims` are specified, the output is converted using an
+  heuristic method to suitable scalar or vector.
 * If only `T` is specified, it can be:
-
-  * `String` to return the answer as a single string;
-
-  * `Vector{String}}` or `Tuple{Vararg{String}}` to return the answer split in
+  - `String` to return the answer as a single string;
+  - `Vector{String}}` or `Tuple{Vararg{String}}` to return the answer split in
     words as a vector or as a tuple of strings;
-
-  * `T` where `T<:Real` to return a value of type `T` obtained by parsing the
+  - `T` where `T<:Real` to return a value of type `T` obtained by parsing the
     textual answer.
-
-  * `Tuple{Vararg{T}}` where `T<:Real` to return a value of type `T` obtained
+  - `Tuple{Vararg{T}}` where `T<:Real` to return a value of type `T` obtained
     by parsing the textual answer;
-
-  * `Vector{T}` where `T` is not `String` to return the binary contents
-    of the answer as a vector of type `T`;
-
+  - `Vector{T}` where `T` is not `String` to return the binary contents of the
+    answer as a vector of type `T`;
 * If both `T` and `dims` are specified, `T` can be an array type like
   `Array{S}` or `Array{S,N}` and `dims` a list of `N` dimensions to retrieve
   the binary contents of the answer as an array of type `Array{S,N}`.
 
-As a special case:
-
-    SAOImageDS9.get(Array; endian=:native) -> arr
-
-yields the contents of current SAOImage/DS9 frame as an array (or as `nothing`
-if the frame is empty). Keyword `endian` can be used to specify the byte order
-of the received values (see [`SAOImageDS9.byte_order`](@ref)).
-
-# See also
-[`SAOImageDS9.connect`](@ref), [`SAOImageDS9.set`](@ref) and `XPA.get`.
+See also: [`SAOImageDS9.connect`](@ref), [`SAOImageDS9.set`](@ref) and `XPA.get`.
 """
-get(args...) = XPA.get(_apt(), join_arguments(args); nmax=1, throwerrors=true)
+function get(ap::AccessPoint, args...; kw...)
+    command = join_arguments(args)
+    if string(command) != ""
+        r = XPA.get(ap, string(command); kw...)
+        if XPA.has_errors(r)
+            m = XPA.get_message(r)
+            msg = strip(m[10:end])
+            f = findfirst("(DS9:", msg)
+            if !isnothing(f)
+                msg = msg[begin:first(f)-1]
+            end
+            @warn "XPA $msg"
+        elseif r.replies == 0
+            @warn "No replies for command `$command`"
+        end
+        data = XPA.get_data(String, r)
+        lines = filter(!isempty, split(data, "\n"))
+        if isnothing(findfirst(x -> isnothing(tryparse(Int, x)), lines))
+            result = tryparse.(Int, lines)
+        elseif isnothing(findfirst(x -> isnothing(tryparse(Float64, x)), lines))
+            result = tryparse.(Float64, lines)
+        else
+            result = lines
+        end
+        if length(result) == 0
+            return nothing
+        elseif length(result) == 1
+            return first(result)
+        else
+            return result
+        end
+    end
+    nothing
+end
+
+@inline get(args...; kw...) = get(_apt(), args...; kw...)
 
 # Yields result as a vector of numerical values extracted from the binary
 # contents of the reply.
-get(::Type{Vector{T}}, args...) where {T} =
-    XPA.get(Vector{T}, _apt(), join_arguments(args); nmax=1, throwerrors=true)
+@inline get(ap::AccessPoint, ::Type{Vector{T}}, args...; kw...) where {T} =
+    XPA.get(Vector{T}, ap, join_arguments(args); kw...)
 
 # Idem with given number of elements.
-get(::Type{Vector{T}}, dim::Integer, args...) where {T} =
-    XPA.get(Vector{T}, (dim,), _apt(), join_arguments(args);
-            nmax=1, throwerrors=true)
+@inline get(ap::AccessPoint, ::Type{Vector{T}}, dim::Integer, args...; kw...) where {T} =
+    XPA.get(Vector{T}, (dim,), ap, join_arguments(args); kw...)
 
 # Yields result as an array of numerical values with given dimensions
 # and extracted from the binary contents of the reply.
-get(::Type{Array{T,N}}, dims::NTuple{N,Integer}, args...) where {T,N} =
-    XPA.get(Array{T,N}, dims, _apt(), join_arguments(args);
-            nmax=1, throwerrors=true)
+@inline get(ap::AccessPoint, ::Type{Array{T,N}}, dims::NTuple{N,Integer}, args...; kw...) where {T,N} =
+    XPA.get(Array{T,N}, dims, ap, join_arguments(args); kw...)
 
 # Idem but Array number of dimensions not specified.
-get(::Type{Array{T}}, dims::NTuple{N,Integer}, args...) where {T,N} =
-    get(Array{T,N}, dims, args...)
+@inline get(ap::AccessPoint, ::Type{Array{T}}, dims::NTuple{N,Integer}, args...; kw...) where {T,N} =
+    get(ap, Array{T,N}, dims, args...; kw...)
 
 # Yields result as a single string.
-get(::Type{String}, args...) =
-    XPA.get(String, _apt(), join_arguments(args); nmax=1, throwerrors=true)
+@inline get(ap::AccessPoint, ::Type{String}, args...; kw...) =
+    XPA.get(String, ap, join_arguments(args); kw...)
 
 # Yields result as a vector of strings split out of the textual contents of the
 # reply.
-function get(::Type{Vector{String}}, args...;
-             delim = isspace,
-             keepempty::Bool=false)
-    return split(chomp(get(String, args...)), delim; keepempty=keepempty)
-end
+@inline get(ap::AccessPoint, ::Type{Vector{String}}, args...; delim = isspace, keepempty::Bool=false, kw...) =
+    split(chomp(get(ap, String, args...; kw...)), delim; keepempty=keepempty)
 
 # Yields result as a tuple of strings split out of the textual contents of the
 # reply.
-get(::Type{TupleOf{String}}, args...; kdws...) =
-    Tuple(get(Vector{String}, args...; kdws...))
+@inline get(ap::AccessPoint, ::Type{TupleOf{String}}, args...; kw...) =
+    Tuple(get(ap, Vector{String}, args...; kw...))
 
 # Yields result as a numerical value parsed from the textual contents of the
 # reply.
-function get(::Type{T}, args...) :: T where {T<:Real}
-    _parse(T, get(String, args...))
-end
+@inline get(ap::AccessPoint, ::Type{T}, args...; kw...) where {T<:Real} =
+    _parse(T, get(ap, String, args...; kw...))::T
 
 # Yields result as a tuple of numerical values parsed from the textual contents
 # of the reply.
-get(::Type{TupleOf{T}}, args...) where {T<:Real} =
-    _parse(TupleOf{T}, get(String, args...))
+@inline get(ap::AccessPoint, ::Type{TupleOf{T}}, args...; kw...) where {T<:Real} =
+    _parse(TupleOf{T}, get(ap, String, args...; kw...))
 
 _parse(::Type{T}, str::AbstractString) where {T<:Real} = parse(T, str)
 
@@ -203,58 +323,80 @@ function _parse(::Type{TupleOf{T}}, str::AbstractString) where {T<:Real}
     return Tuple(map(s -> _parse(T, s), split(str; keepempty=false)))
 end
 
-function get(::Type{Array}; endian::Union{Symbol,AbstractString}=:native)
-    T = bitpix_to_type(get(Int, "fits bitpix"))
-    if T === Nothing; return nothing; end
-    dims = get(TupleOf{Int}, "fits size")
-    return get(Array{T}, dims, "array", byte_order(endian))
+"""
+    get([accesspoint,] Array; endian=:native, kw...) 
+
+Returns the contents of current SAOImage/DS9 frame as an array.
+
+The keyword `endian` can be used to specify the byte order of the received
+values (see [`SAOImageDS9.byte_order`](@ref)). This method retunrs`nothing` if
+the frame is empty. 
+"""
+function get(ap::AccessPoint, ::Type{Array}; endian::Union{Symbol,AbstractString}=:native, kw...)
+    T = bitpix_to_type(get(ap, Int, "fits bitpix"; kw...))
+    if T === Nothing
+        return nothing
+    end
+    dims = get(ap, TupleOf{Int}, "fits size"; kw...)
+    return get(ap, Array{T}, dims, "array", byte_order(endian); kw...)
 end
 
 """
-    SAOImageDS9.get(VersionNumber)
+    get([accesspoint,] VersionNumber)
 
 Retrieve the version of the SAOImage/DS9 program.
 """
-function get(::Type{VersionNumber})
-    str = get(String, "version")
-    m = match(r"^ds9 +([.0-9]+[a-z]*)\s*$", str)
-    m === nothing && error("unknown version number in \"$str\"")
-    return VersionNumber(m.captures[1])
+function get(ap::AccessPoint, ::Type{VersionNumber}; kw...)
+    str = get(ap, String, "version"; kw...)
+    return VersionNumber(split(str, " ")[end])
 end
 
 """
-    SAOImageDS9.set(args...; data=nothing)
+    set([accesspoint,] args...; data=nothing)
 
-sends command and/or data to the SAOImage/DS9 server.  The command is made of
-arguments `args...` converted into strings and merged with a separating spaces.
-Keyword `data` can be used to specify the data to send.  An exception is thrown
-in case of error.
+Send a command and/or data to the SAOImage/DS9 server.
 
-As a special case:
+The command is made of arguments `args...` converted into strings and merged
+with a separating spaces. Keyword `data` can be used to specify the data to
+send. An exception is thrown in case of error.
 
-    SAOImageDS9.set(arr; mask=false, new=false, endian=:native)
-
-set the contents of the current SAOImage/DS9 frame to be array `arr`.  Keyword
-`new` can be set true to create a new frame for displyaing the array.  Keyword
-`endian` can be used to specify the byte order of the values in `arr` (see
-[`SAOImageDS9.byte_order`](@ref).
-
-See also [`SAOImageDS9.connect`](@ref), [`SAOImageDS9.get`](@ref) and
+See also: [`SAOImageDS9.connect`](@ref), [`SAOImageDS9.get`](@ref), and
 `XPA.set`.
 """
-function set(args...; data=nothing)
-    XPA.set(_apt(), join_arguments(args); nmax=1, throwerrors=true, data=data)
+function set(ap::AccessPoint, args...; data=nothing, kw...)
+    r = XPA.set(XPA.address(ap), join_arguments(args); kw...)
+    if XPA.has_errors(r)
+        m = XPA.get_message(r)
+        msg = strip(m[10:end])
+        f = findfirst("(DS9:", msg)
+        if !isnothing(f)
+            msg = msg[begin:first(f)-1]
+        end
+        @warn "XPA $msg"
+    elseif r.replies == 0
+        @warn "No replies for command `$command`"
+    end
     return nothing
 end
 
-function set(arr::DenseArray{T,N};
-             endian::Symbol=:native,
-             mask::Bool=false,
-             new::Bool=false) where {T<:PixelTypes,N}
+@inline set(args...; kw...) = set(_apt(), args...; kw...)
+
+"""
+    set([accesspoint,] arr; mask=false, new=false, endian=:native)
+
+Set the contents of the current SAOImage/DS9 frame to be array `arr`.
+
+# Keywords
+- `mask`: controls the DS9 mask parameters
+- `new`: if `true`, a new frame is created;
+- `endian`: specify the byte order of `arr` (see [`byte_order`](@ref)).
+"""
+function set(ap::AccessPoint, arr::DenseArray{T,N}; endian::Symbol=:native,
+    mask::Bool=false, new::Bool=false, kw...) where {T<:PixelTypes,N}
     args = String["array"]
     new && push!(args, "new")
     mask && push!(args, "mask")
-    set(args..., _arraydescriptor(arr; endian=endian); data=arr)
+    set(ap, args..., _arraydescriptor(arr; endian=endian); data=arr, kw...)
 end
 
 # Convert other pixel types.
@@ -262,14 +404,14 @@ for (T, S) in ((Int8,   Int16),
                (UInt16, Float32),
                (UInt32, Float32),
                (UInt64, Float32))
-    @eval set(arr::AbstractArray{$T,N}; kwds...) where {N} =
-        set(convert(Array{$S,N}, arr); kwds...)
+    @eval set(ap::AccessPoint, arr::AbstractArray{$T,N}; kw...) where {N} =
+        set(ap, convert(Array{$S,N}, arr); kw...)
 end
 
 # Convert non-dense array types.
 for T in PIXELTYPES
-    @eval set(arr::AbstractArray{$T,N}; kwds...) where {N} =
-        set(convert(Array{$T,N}, arr); kwds...)
+    @eval set(ap::AccessPoint, arr::AbstractArray{$T,N}; kw...) where {N} =
+        set(ap, convert(Array{$T,N}, arr); kw...)
 end
 
 function _arraydescriptor(arr::DenseArray{T,2};
@@ -292,13 +434,14 @@ _arraydescriptor(arr::DenseArray; kdws...) =
     error("only 2D and 3D arrays are supported")
 
 """
-    SAOImageDS9.bitpix_of(x) -> bp
+    bitpix_of(x) -> bp
 
-yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or a
-type.  A value of 0 is returned if `x` is not of a supported type.
+Return the FITS bits-per-pixel (BITPIX) value for `x`
 
-# See also
-[`SAOImageDS9.bitpix_to_type`](@ref)
+`x` can be an array or a type. A value of 0 is returned if `x` is not of a
+supported type.
+
+See also [`bitpix_to_type`](@ref)
 """
 bitpix_of(::DenseArray{T}) where {T} = bitpix_of(T)
 for T in PIXELTYPES
@@ -309,13 +452,14 @@ end
 bitpix_of(::Any) = 0
 
 """
-    SAOImageDS9.bitpix_to_type(bp) -> T
+    bitpix_to_type(bp) -> T
 
-yields Julia type corresponding to FITS bits-per-pixel (BITPIX) value `bp`.
+Return the Julia type corresponding to FITS bits-per-pixel (BITPIX) value
+`bp`.
+
 The type `Nothing` is returned if `bp` is unknown.
 
-# See also
-[`SAOImageDS9.bitpix_of`](@ref)
+See also [`bitpix_of`](@ref)
 """
 bitpix_to_type(bitpix::Int) =
     (bitpix ==   8 ? UInt8   :
@@ -328,15 +472,15 @@ bitpix_to_type(bitpix::Integer) = bitpix_to_type(Int(bitpix))
 bitpix_to_type(::Any) = Nothing
 
 """
-    SAOImageDS9.byte_order(endian)
+    byte_order(endian)
 
-yields the byte order for retrieving the elements of a SAOImage/DS9 array.
-Argument can be one of the strings (or the equivalent symbol): `"big"` for most
-significant byte first, `"little"` for least significant byte first or
-`"native"` to yield the byte order of the machine.
+Return the byte order for retrieving the elements of a SAOImage/DS9 array.
 
-# See also
-[`SAOImageDS9.get`](@ref), [`SAOImageDS9.set`](@ref).
+The argument can be one of the strings (or the equivalent symbol): `:big` for
+most significant byte first, `:little` for least significant byte first or
+`:native` to yield the byte order of the machine.
+
+See also: [`get`](@ref), [`set`](@ref).
 """
 function byte_order(endian::Symbol)
     if endian == :native
@@ -361,44 +505,38 @@ byte_order(endian::AbstractString) = byte_order(Symbol(endian))
 # DRAWING
 
 """
-    SAOImageDS9.draw(args...; kwds...)
+    draw([accesspoint,] args...; kwds...)
 
-draws something in SAOImage/DS9 application.  The operation depends on the type
-of the arguments.
+Draws something in SAOImage/DS9 application.
+
+The specific operation depends on the type of the arguments.
 """
-draw(args...; kwds...) = draw(args; kwds...)
-draw(::Tuple{}; kwds...) = nothing
-draw(::T; kwds...) where {T} = error("unexpected type of argument(s): $T")
+draw(args...; kwds...) = draw(_apt(), args; kwds...)
+draw(ap::AccessPoint, ::Tuple{}; kwds...) = nothing
+draw(ap::AccessPoint, ::T; kwds...) where {T} = error("unexpected type of argument(s): $T")
 
 """
-    SAOImageDS9.draw(img::AbstractMatrix; kwds...)
+    draw([accesspoint,] img::AbstractMatrix; kwds...)
 
-displays image `img` (a 2-dimensional Julia array) in SAOImage/DS9.
-The following keywords are possible:
+Displays image `img` (a 2-dimensional Julia array) in SAOImage/DS9.
 
-- Keyword `frame` can be used to specify the frame number.
-
-- Keyword `cmap` can be used to specify the name of the colormap.  For
-  instance, `cmap="gist_stern"`.
-
-- Keyword `zoom` can be used to specify the zoom factor.
-
-- Keywords `min` and/or `max` can be used to specify the scale limits.
+# Keywords
+- `frame`: selects the given frame number;
+- `cmap`: uses the named colormap;
+- `zoom`: fixes the zoom factor;
+- `min` & `max`: fix the scale limits.
 """
-function draw(img::AbstractMatrix;
-              min::Union{Real,Nothing} = nothing,
-              max::Union{Real,Nothing} = nothing,
-              cmap = nothing,
-              frame = nothing,
-              zoom = nothing)
+function draw(ap::AccessPoint, img::AbstractMatrix; 
+    min::Union{Real,Nothing}=nothing, max::Union{Real,Nothing}=nothing,
+    cmap=nothing, frame=nothing, zoom=nothing)
     # FIXME: pack all commands into a single one.
-    frame === nothing || ds9set("frame", frame)
-    zoom === nothing || ds9set("zoom to", zoom)
-    set(img)
+    frame === nothing || set(ap, "frame", frame)
+    zoom === nothing || set(ap, "zoom to", zoom)
+    set(ap, img)
     if min !== nothing || max !== nothing
-        set("scale limits", limits(img, min, max)...)
+        set(ap, "scale limits", limits(img, min, max)...)
     end
-    cmap === nothing || set("cmap", cmap)
+    cmap === nothing || set(ap, "cmap", cmap)
     return nothing
 end
 
@@ -408,43 +546,45 @@ end
 # limit to the total length of an XPA command (given by XPA.SZ_LINE I guess).
 
 """
-    SAOImageDS9.draw(pnt; kwds...)
+    draw([accesspoint,] pnt; kwds...)
 
-draws `pnt` as point(s) in SAOImage/DS9, `pnt` is a `Point`, an array or a
-tuple of `Point`.
+Draw `pnt` as point(s) in SAOImage/DS9.
+
+`pnt` can be a `Point`, an array, or a tuple of `Point`'s.
 """
-draw(A::Point; kwds...) = _draw(_region(Val(:point), kwds), A)
-function draw(A::Union{Tuple{Vararg{Point}},
-                       AbstractArray{<:Point}}; kwds...)
-    cmd = _region(Val(:point), kwds)
+draw(ap::AccessPoint, A::Point; kwds...) = _draw(ap, _region(Val(:point), kwds), A)
+function draw(ap::AccessPoint, A::Union{Tuple{Vararg{Point}},
+    AbstractArray{<:Point}}; kw...)
+    cmd = _region(Val(:point), kw)
     for i in eachindex(A)
-        _draw(cmd, A[i])
+        _draw(ap::AccessPoint, cmd, A[i])
     end
 end
 
 """
-    SAOImageDS9.draw(box; kwds...)
+    draw([accesspoint,] box; kwds...)
 
-draws `box` as rectangle(s) in SAOImage/DS9, `box` is a `BoundingBox`, an array
-or a tuple of `BoundingBox`.
+Draws `box` as rectangle(s) in SAOImage/DS9.
+
+box` can be a `BoundingBox`, an array, or a tuple of `BoundingBox`'es.
 """
-draw(A::BoundingBox; kwds...) =  _draw(_region(Val(:polygon), kwds), A)
-function draw(A::Union{Tuple{Vararg{BoundingBox}},
-                       AbstractArray{<:BoundingBox}}; kwds...)
-    cmd = _region(Val(:polygon), kwds)
+draw(ap::AccessPoint, A::BoundingBox; kwds...) = _draw(ap, _region(Val(:polygon), kwds), A)
+function draw(ap::AccessPoint, A::Union{Tuple{Vararg{BoundingBox}},
+    AbstractArray{<:BoundingBox}}; kw...)
+    cmd = _region(Val(:polygon), kw)
     for i in eachindex(A)
-        _draw(cmd, A[i])
+        _draw(ap, cmd, A[i])
     end
 end
 
-function _draw(cmd::NTuple{2,AbstractString}, A::Point)
-    set(cmd[1], A.x, A.y, cmd[2])
+function _draw(ap::AccessPoint, cmd::NTuple{2,AbstractString}, A::Point)
+    set(ap, cmd[1], A.x, A.y, cmd[2])
     nothing
 end
 
-function _draw(cmd::NTuple{2,AbstractString}, A::BoundingBox)
+function _draw(ap::AccessPoint, cmd::NTuple{2,AbstractString}, A::BoundingBox)
     x0, x1, y0, y1 = Tuple(A)
-    set(cmd[1], x0, y0, x1, y0, x1, y1, x0, y1, x0, y0, cmd[2])
+    set(ap, cmd[1], x0, y0, x1, y0, x1, y1, x0, y1, x0, y0, cmd[2])
     nothing
 end
 
@@ -477,51 +617,59 @@ for id in (:circle, :ellipse, :box, :polygon, :point, :line,
 end
 
 """
-    SAOImageDS9.message([apt=SAOImageDS9.accesspoint(),] msg; cancel=false)
+    message([accesspoint,] message; cancel=false)
 
-displays a message dialog with text `msg` in SAOImage/DS9 application referred
-by `apt` and returns a boolean.  If keyword `cancel` is true, a *Cancel* button
-is added to the dialog and `false` maybe returned if the dialog is not closed
-by clicking the *OK* button; otherwise `true` is returned.
+Display a dialog with the given `message`.
+
+If `cancel=true`, a *Cancel* button is added to the dialog: in that case, the
+return value is `true` or `false` depending on the button pressed by the user.
 """
 message(msg::AbstractString; kwds...) =  message(_apt(), msg; kwds...)
-function message(apt, msg::AbstractString; cancel::Bool = false)
+function message(ap::AccessPoint, msg::AbstractString; cancel::Bool = false)
     btn = (cancel ? "okcancel" : "ok")
     cmd = "analysis message $btn {$msg}"
-    tryparse(Int, XPA.get(String, apt, cmd)) == 1
+    tryparse(Int, XPA.get(String, ap, cmd)) == 1
 end
 
 """
-    SAOImageDS9.select([apt=SAOImageDS9.accesspoint(),];
-                       text="", key=false, cancel=false) -> (k,x,y,v)
+    select([accesspoint]; text="", cancel=false, coords=:image, event=:button)
 
-returns the position selected by the user in SAOImage/DS9 application referred
-by `apt`.  If keyword `text` is set, a dialog message is first displayed,
-possibly with a *Cancel* button if keyword `cancel` is true.  If keyword `key`
-is true, the position is selected by pressing a key; otherwise, the position is
-selected by clicking the first mouse button.  The result is either `nothing`
-(for instance if the *Cancel* button of the dialog is clicked) or a 4-tuple
-`(k,x,y,v)` with `k` the pressed key (an empty string if `key` is false),
-`(x,y)` are the coordinates of the selected position and `v` is the
-corresponding value in the data.
+Returns the position selected by the user.
+
+# Keywords
+- `text`: a dialog message with the given text is displayed first;
+- `cancel`: if `true`, the dialog message will allow the user to cancel the
+  operation (in this case this function returns `nothing`);
+- `event`: the type of event to capture the cursor position, as a symbol:
+  `:button`, `:key`, `:any`
+- `coords`: the type of coordinates to return as a symbol: `:image`,
+  `:physical`, `:fk5`, `:galactic`; if set to `:data`, this function returns
+  the value of the pixel, instead of its coordinates
+
+The function returns the tuple `(key, x, y)` or `(key, value)`, where `key` is the key
+pressed, `(x, y)` are the coordinates of the point selected, and `value` the
+corresponding value.
 """
-function select(apt = _apt();
-                text::AbstractString = "",
-                cancel::Bool = false,
-                key::Bool = false)
-    if length(text) > 0
-        message(apt, text; cancel=cancel) || return nothing
+function select(ap::AccessPoint=_apt(); text::AbstractString="", cancel::Bool=false,
+    coords=:image, event=:button)
+    if event ∉ (:button, :key, :any)
+        error("Unknown event type $event")
     end
-    cmd = (key ? "iexam key {\$x \$y \$value}" : "iexam {\$x \$y \$value}")
-    rep = split(XPA.get(String, apt, cmd))
-    off = (key ? 1 : 0)
-    length(rep) == 3+off || return nothing
-    k = (key ? string(rep[off+0]) : "")
-    x = tryparse(Float64, rep[off+1])
-    y = tryparse(Float64, rep[off+2])
-    v = tryparse(Float64, rep[off+3])
-    (x === nothing || y === nothing || v === nothing) && return nothing
-    return k, x, y, v
+    if length(text) > 0
+        message(ap, text; cancel=cancel) || return nothing
+    else
+        XPA.set(XPA.address(ap), "raise")
+    end
+    reply = XPA.get(ap, "imexam $event $(coords !== :data ? "coordinate " : "") $coords")
+    data = split(XPA.get_data(String, reply))
+    if event != :button
+        key = data[1]
+        p = parse.(Float64, @view data[2:end])
+    else
+        key = "<1>"
+        p = parse.(Float64, data)
+    end
+    (key, p...)
 end
 
 #------------------------------------------------------------------------------

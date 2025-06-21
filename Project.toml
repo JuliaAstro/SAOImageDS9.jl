@@ -4,10 +4,12 @@ authors = ["Éric Thiébaut <https://github.com/emmt>"]
 version = "0.2.0"
 
 [deps]
+REPL = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 TwoDimensional = "1907e7ba-7586-4310-a2ba-dd01462aeb50"
 XPA = "d310a076-6a08-52b6-ab78-79baa254182b"
 
 [compat]
+REPL = "1.11.0"
 TwoDimensional = "0.2, 0.5"
 XPA = "0.2"
 julia = "1.3"
