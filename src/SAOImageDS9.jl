@@ -614,7 +614,7 @@ for id in (:circle, :ellipse, :box, :polygon, :point, :line,
            :vector, :text, :ruler, :compass, :projection, :annulus,
            :panda, :epanda, :bpanda)
     V = Val{id}
-    cmd = "regions command { $id"
+    cmd = "region command { $id"
     @eval _region(::$V, kwds::Pairs) = ($cmd, _set_options(kwds))
 end
 
