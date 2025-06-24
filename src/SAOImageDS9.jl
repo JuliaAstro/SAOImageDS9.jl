@@ -63,7 +63,7 @@ function _apt()
         try
             accesspoint = connect()
         catch
-            @warn """Failed to automatically connect to SAOImage/DS9. 
+            @warn """Failed to automatically connect to SAOImage/DS9.
                 Launch ds9 then do `ds9connect()`"""
         end
     end
@@ -75,13 +75,14 @@ end
     SAOImageDS9.connect(ident="DS9:*"; method="local") -> apt
 
 Set the access point for further SAOImage/DS9 commands.
-    
+
 The argument `ident` identifies the XPA access point: it can be a template
 string like `"DS9:*"` which is the default value or a regular expression.  The
 returned value is the name of the access point.
 
 To retrieve the name of the current SAOImage/DS9 access point, call the
 [`SAOImageDS9.accesspoint`](@ref) method.
+
 """
 function connect(ident::Union{Regex,AbstractString} = "DS9:*"; method="local", kwds...)
     global accesspoint
@@ -324,13 +325,13 @@ function _parse(::Type{TupleOf{T}}, str::AbstractString) where {T<:Real}
 end
 
 """
-    get([accesspoint,] Array; endian=:native, kw...) 
+    get([accesspoint,] Array; endian=:native, kw...)
 
 Returns the contents of current SAOImage/DS9 frame as an array.
 
 The keyword `endian` can be used to specify the byte order of the received
 values (see [`SAOImageDS9.byte_order`](@ref)). This method retunrs`nothing` if
-the frame is empty. 
+the frame is empty.
 """
 function get(ap::AccessPoint, ::Type{Array}; endian::Union{Symbol,AbstractString}=:native, kw...)
     T = bitpix_to_type(get(ap, Int, "fits bitpix"; kw...))
@@ -436,12 +437,11 @@ _arraydescriptor(arr::DenseArray; kdws...) =
 """
     bitpix_of(x) -> bp
 
-Return the FITS bits-per-pixel (BITPIX) value for `x`
+yields FITS bits-per-pixel (BITPIX) value for `x` which can be an array or a type. A value
+of 0 is returned if `x` is not of a supported type.
 
-`x` can be an array or a type. A value of 0 is returned if `x` is not of a
-supported type.
+See also [`SAOImageDS9.bitpix_to_type`](@ref).
 
-See also [`bitpix_to_type`](@ref)
 """
 bitpix_of(::DenseArray{T}) where {T} = bitpix_of(T)
 for T in PIXELTYPES
@@ -457,9 +457,11 @@ bitpix_of(::Any) = 0
 Return the Julia type corresponding to FITS bits-per-pixel (BITPIX) value
 `bp`.
 
-The type `Nothing` is returned if `bp` is unknown.
+yields Julia type corresponding to FITS bits-per-pixel (BITPIX) value `bp`. The type
+`Nothing` is returned if `bp` is unknown.
 
-See also [`bitpix_of`](@ref)
+See also [`SAOImageDS9.bitpix_of`](@ref).
+
 """
 bitpix_to_type(bitpix::Int) =
     (bitpix ==   8 ? UInt8   :
@@ -474,7 +476,10 @@ bitpix_to_type(::Any) = Nothing
 """
     byte_order(endian)
 
-Return the byte order for retrieving the elements of a SAOImage/DS9 array.
+yields the byte order for retrieving the elements of a SAOImage/DS9 array. Argument can be
+one of the strings (or the equivalent symbol): `"big"` for most significant byte first,
+`"little"` for least significant byte first or `"native"` to yield the byte order of the
+machine.
 
 The argument can be one of the strings (or the equivalent symbol): `:big` for
 most significant byte first, `:little` for least significant byte first or
@@ -526,7 +531,7 @@ Displays image `img` (a 2-dimensional Julia array) in SAOImage/DS9.
 - `zoom`: fixes the zoom factor;
 - `min` & `max`: fix the scale limits.
 """
-function draw(ap::AccessPoint, img::AbstractMatrix; 
+function draw(ap::AccessPoint, img::AbstractMatrix;
     min::Union{Real,Nothing}=nothing, max::Union{Real,Nothing}=nothing,
     cmap=nothing, frame=nothing, zoom=nothing)
     # FIXME: pack all commands into a single one.
@@ -672,17 +677,32 @@ function select(ap::AccessPoint=_apt(); text::AbstractString="", cancel::Bool=fa
     (key, p...)
 end
 
+function cube(; apt=_apt())
+    get_and_parse(Int, apt, "cube")
+end
+function cube(z::Integer; apt=_apt())
+    XPA.set(apt, "cube $z")
+end
+
+function cube_interval(; apt=_apt())
+    get_and_parse(Float64, apt, "cube interval")
+end
+function cube_interval(dt::Real; apt=_apt())
+    XPA.set(apt, "cube interval $dt")
+end
+
 #------------------------------------------------------------------------------
 # LIMITS
 
 """
-    limits(A, cmin=nothing, cmax=nothing) -> (lo, hi)
+    SAOImageDS9.limits(A, cmin=nothing, cmax=nothing) -> (lo, hi)
 
-yields the clipping limits of values in array `A`.  The result is a 2-tuple of
-double precision floats `(lo,hi)`.  If `cmin` is `nothing`, `lo` is the minimal
-finite value found in `A` and converted to `Cdouble`; otherwise `lo =
-Cdouble(cmin)`.  If `cmax` is `nothing`, `hi` is the maximal finite value found
-in `A` and converted to `Cdouble`; otherwise `hi = Cdouble(cmax)`.
+yields the clipping limits of values in array `A`. The result is a 2-tuple of double
+precision floats `(lo,hi)`. If `cmin` is `nothing`, `lo` is the minimal finite value found
+in `A` and converted to `Cdouble`; otherwise `lo = Cdouble(cmin)`. If `cmax` is `nothing`,
+`hi` is the maximal finite value found in `A` and converted to `Cdouble`; otherwise `hi =
+Cdouble(cmax)`.
+
 """
 limits(A::AbstractArray{<:Real}, ::Nothing, ::Nothing) =
     to_limits(finite_extrema(A))
@@ -851,7 +871,7 @@ function ds9getregions(ap::AccessPoint, name::String; coords=:image, selected=fa
         end
         if prop ∈ [:delete, :highlite, :edit, :move, :rotate, :include, :select, :fixed,
             :source, :dash, :fill]
-            r = (r == 1) 
+            r = (r == 1)
         end
         r
     end
@@ -870,10 +890,10 @@ function ds9getregions(ap::AccessPoint, name::String; coords=:image, selected=fa
                 props[prop] = tuple(tryparse.(Int, split(value))...)
             elseif prop == :line
                 props[prop] = tuple(parsevalue.(Ref(prop), split(value))...)
-            elseif length(value) > 1 && ((value[1] == value[end] == '"') || 
+            elseif length(value) > 1 && ((value[1] == value[end] == '"') ||
                     (value[1] == value[end] == '\'') || (value[1] == '{' && value[end] == '}'))
                 if prop == :tag
-                    if haskey(props, :tag) 
+                    if haskey(props, :tag)
                         push!(props[:tag], value[2:end-1])
                     else
                         props[prop] = String[value[2:end-1]]
