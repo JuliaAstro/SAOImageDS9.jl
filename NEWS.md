@@ -1,7 +1,6 @@
 # Changes in SAOImageDS9.jl package
 
-
-## Master Version
+## Version 0.2.1 (2025-06-24)
 
 - New `SAOImageDS9.select` method to interactively select a position in a
   running SAOImage/DS9 application.
@@ -9,6 +8,7 @@
 - New `SAOImageDS9.message` method to display a simple message dialog in a
   running SAOImage/DS9 application.
 
+- Fixes in a few `SAOImageDS9.set` commands.
 
 ## Version 0.2.0
 
