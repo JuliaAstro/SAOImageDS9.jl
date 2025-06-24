@@ -481,11 +481,8 @@ one of the strings (or the equivalent symbol): `"big"` for most significant byte
 `"little"` for least significant byte first or `"native"` to yield the byte order of the
 machine.
 
-The argument can be one of the strings (or the equivalent symbol): `:big` for
-most significant byte first, `:little` for least significant byte first or
-`:native` to yield the byte order of the machine.
+See also [`SAOImageDS9.get`](@ref), [`SAOImageDS9.set`](@ref).
 
-See also: [`get`](@ref), [`set`](@ref).
 """
 function byte_order(endian::Symbol)
     if endian == :native
