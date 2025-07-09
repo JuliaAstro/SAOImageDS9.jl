@@ -210,121 +210,120 @@ end
 #------------------------------------------------------------------------------- GET / SET -
 
 """
-    ds9get([apt,] [T, [dims,]] args...)
+    ds9get([T, [dims,]] [apt,] args...; kwds...)
 
-Send a "get" request to a SAOImage/DS9 server.
+Send a single XPA *get* command to SAOImage/DS9.
 
-The request is made of arguments `args...` converted into strings and concatenated with
+The command is made of arguments `args...` converted into strings and concatenated with
 separating spaces.
 
-The returned value depends on the optional arguments `T` and `dims`:
+Optional argument `apt` is to specify another access-point to a SAOImage/DS9 server than
+the default one.
 
-* If only `T` is specified, it can be:
+If none of `T` and `dims` is specified, a single element of `XPA.Reply` is returned.
+Otherwise, `T` must be a type and `dims` represents optional array size:
 
-  - `String` to return the answer as a single string;
+* Without `dims`, then, if `T` is `String`, the answer data is interpreted as an ASCII
+  string and returned; otherwise, if `T` is a *vector type*, the largest vector of that
+  type that can be extracted from the answer data is returned; otherwise, a single value
+  of type `T` is returned.
 
-  - `Vector{String}}` or `Tuple{Vararg{String}}` to return the answer split in words as a
-    vector or as a tuple of strings;
+* If `T` is an array type like `Array{S}` or `Array{S,N}` and `dims` is a `N`-dimensional
+  array size, the answer data is returned as an array of type `Array{S,N}`.
 
-  - `T` where `T<:Real` to return a value of type `T` obtained by parsing the textual
-    answer.
-
-  - `Tuple{Vararg{T}}` where `T<:Real` to return a value of type `T` obtained by parsing the
-    textual answer;
-
-  - `Vector{T}` where `T` is not `String` to return the binary contents of the answer as a
-    vector of type `T`;
-
-* If both `T` and `dims` are specified, `T` can be an array type like `Array{S}` or
-  `Array{S,N}` and `dims` a list of `N` dimensions to retrieve the binary contents of the
-  answer as an array of type `Array{S,N}`.
+!!! note
+    `ds9get` is a simple wrapper over `XPA.get` to provide a default access-point to
+    SAOImage/DS9. If the result of the command is a human readable string with values
+    to extract, call [`ds9scan`](@ref) to send the command and scan these values.
 
 # See also
 
-[`ds9connect`](@ref) and [`ds9set`](@ref).
+[`ds9scan`](@ref), [`ds9connect`](@ref) and [`ds9set`](@ref).
+
+https://ds9.si.edu/doc/ref/xpa.html for a list of XPA commands implemented by
+SAOImage/DS9. This documentation is also available via the menu *Help* > *Reference
+Manual* > *XPA Access Points* of SAOImage/DS9.
 
 """
-ds9get(args...; kwds...) = ds9get(default_apt(), args...; kwds...)
-ds9get(apt::AccessPoint, args...; kwds...) = ds9get(apt, XPA.join_arguments(args); kwds...)
-
-# Yields result as a vector of numerical values extracted from the binary contents of the
-# reply.
-ds9get(apt::AccessPoint, ::Type{Vector{T}}, args...; kwds...) where {T} =
-    XPA.get(Vector{T}, apt, join_arguments(args); kwds...)
-
-# Idem with given number of elements.
-ds9get(apt::AccessPoint, ::Type{Vector{T}}, dim::Integer, args...; kwds...) where {T} =
-    XPA.get(Vector{T}, (dim,), apt, join_arguments(args); kwds...)
-
-# Yields result as an array of numerical values with given dimensions and extracted from the
-# binary contents of the reply.
-ds9get(apt::AccessPoint, ::Type{Array{T,N}}, dims::NTuple{N,Integer}, args...; kwds...) where {T,N} =
-    XPA.get(Array{T,N}, dims, apt, join_arguments(args); kwds...)
-
-# Idem but number of dimensions not specified.
-ds9get(apt::AccessPoint, ::Type{Array{T}}, dims::NTuple{N,Integer}, args...; kwds...) where {T,N} =
-    ds9get(apt, Array{T,N}, dims, args...; kwds...)
-
-# Yields result as a single string.
-ds9get(apt::AccessPoint, ::Type{String}, args...; kwds...) =
-    XPA.get(String, apt, join_arguments(args); kwds...)
-
-# Yields result as a vector of strings split out of the textual contents of the reply.
-ds9get(apt::AccessPoint, ::Type{Vector{String}}, args...; delim = isspace, keepempty::Bool=false, kwds...) =
-    split(chomp(ds9get(apt, String, args...; kwds...)), delim; keepempty=keepempty)
-
-# Yields result as a tuple of strings split out of the textual contents of the reply.
-ds9get(apt::AccessPoint, ::Type{TupleOf{String}}, args...; kwds...) =
-    Tuple(ds9get(apt, Vector{String}, args...; kwds...))
-
-# Yields result as a numerical value parsed from the textual contents of the reply.
-ds9get(apt::AccessPoint, ::Type{T}, args...; kwds...) where {T<:Real} =
-    _parse(T, ds9get(apt, String, args...; kwds...))::T
-
-# Yields result as a tuple of numerical values parsed from the textual contents
-# of the reply.
-ds9get(apt::AccessPoint, ::Type{TupleOf{T}}, args...; kwds...) where {T<:Real} =
-    _parse(TupleOf{T}, ds9get(apt, String, args...; kwds...))
-
-_parse(::Type{T}, str::AbstractString) where {T<:Real} = parse(T, str)
-
-function _parse(::Type{Bool}, str::AbstractString)
-    key = strip(str)
-    haskey(_BOOLEANS, key) ||
-        throw(ArgumentError("invalid boolean textual value"))
-    return _BOOLEANS[key]
+function ds9get(::Type{T}, dims::Union{Integer,Tuple{Vararg{Integer}}},
+                apt::AccessPoint, args...; kwds...) where {T<:AbstractArray}
+    return XPA.get(T, dims, apt, args...; kwds...)
 end
 
-const _BOOLEANS = Dict{String,Bool}("true"  => true, "yes" => true,
-                                    "false" => false, "no" => false)
-
-function _parse(::Type{TupleOf{T}},
-                list::TupleOf{AbstractString}) where {T<:Real}
-    return map(s -> _parse(T, s), list)
+function ds9get(::Type{T}, apt::AccessPoint, args...; kwds...) where {T}
+    return XPA.get(T, apt, args...; kwds...)
 end
 
-function _parse(::Type{TupleOf{T}}, str::AbstractString) where {T<:Real}
-    return Tuple(map(s -> _parse(T, s), split(str; keepempty=false)))
+function ds9get(apt::AccessPoint, args...; kwds...) where {T}
+    # Return the unique reply.
+    return XPA.get(apt, args...; throwerrors=true, nmax=1, kwds...)[]
 end
+
+# Provide default access-point. Apart from this parameter, signatures must match those of
+# above methods.
+function ds9get(::Type{T}, dims::Union{Integer,Tuple{Vararg{Integer}}},
+                args...; kwds...) where {T<:AbstractArray}
+    return ds9get(T, dims, default_apt(), args...; kwds...)
+end
+
+function ds9get(::Type{T}, args...; kwds...) where {T}
+    return ds9get(T, default_apt(), args...; kwds...)
+end
+
+function ds9get(args...; kwds...) where {T}
+    return ds9get(default_apt(), args...; kwds...)
+end
+
+# For backward compatibility. Access-point may be given first.
+@deprecate(ds9get(apt::AccessPoint, ::Type{T}, dims::Union{Integer,Tuple{Vararg{Integer}}},
+                  args...; kwds...) where {T<:AbstractArray},
+           ds9get(T, dims, apt, args...; kwds...), false)
+@deprecate(ds9get(apt::AccessPoint, ::Type{T}, args...; kwds...) where {T},
+           ds9get(T, apt, args...; kwds...), false)
 
 """
-    ds9get([accesspoint,] Array; endian=:native, kwds...)
+    ds9get(A::Type{<:Array} [, apt]; kwds...) -> arr::A
 
 Returns the contents of current SAOImage/DS9 frame as an array.
 
-The keyword `endian` can be used to specify the byte order of the received values (see
-[`SAOImageDS9.byte_order`](@ref)). This method returns `nothing` if the frame is empty.
+Result type `A` may be `Array`, `Array{T}`, `Array{T,N}`, etc. depending on which type
+parameters are known (or imposed). Having a more qualified array type `A` reduces the
+uncertainty of the result.
+
+Optional argument `apt` is to specify another access-point to a SAOImage/DS9 server than
+the default one.
 
 """
-function ds9get(apt::AccessPoint, ::Type{Array};
-                endian::Union{Symbol,AbstractString}=:native, kwds...)
-    T = bitpix_to_type(ds9get(apt, Int, "fits bitpix"; kwds...))
-    if T === Nothing
-        return nothing
-    end
-    dims = ds9get(apt, TupleOf{Int}, "fits size"; kwds...)
-    return ds9get(apt, Array{T}, dims, "array", byte_order(endian); kwds...)
+function ds9get(apt::AccessPoint, ::Type{A}; kwds...) where {A<:Array}
+    return ds9get(A, apt; kwds...)
 end
+
+function ds9get(::Type{A}, apt::AccessPoint=default_apt(); kwds...) where {A<:Array}
+    # Get image size (as un-parsed words) to check the number of dimensions `N` (if
+    # specified in result type) and call auxiliary function to dispatch on `N`.
+    dims = split(XPA.get(String, apt, "fits size"; kwds...))
+    N = length(dims)
+    !has_ndims(A) || ndims(A) == N || throw(DimensionMismatch(
+        "$N-dimensional image incompatible with $(ndims(A))-dimensional array type"))
+    return convert(A, get_pixels(Array{Any,N}, dims, apt; kwds...))
+end
+
+function get_pixels(::Type{Array{T,N}}, dims::Vector{<:AbstractString},
+                    apt::AccessPoint; kwds...) where {T,N}
+    if T === Any
+        # Only number of dimensions `N` is known: determine pixel type `T` and dispatch on
+        # `T` and `N`.
+        Tp = bitpix_to_type(ds9scan(Int, apt, "fits bitpix"; kwds...))
+        return get_pixels(Array{Tp,N}, dims, apt; kwds...)
+    else
+        # Element type and number of dimensions are known, the result is type-stable.
+        rep = ds9get(apt, "array native"; kwds...)
+        return rep.data(Array{T,N}, scan(Dims{N}, dims); take=true)
+    end
+end
+
+has_ndims(::Type{<:AbstractArray}) = false
+has_ndims(::Type{<:AbstractArray{<:Any,N}}) where {N} = true
 
 """
     ds9get([accesspoint,] VersionNumber)
