@@ -326,22 +326,32 @@ has_ndims(::Type{<:AbstractArray}) = false
 has_ndims(::Type{<:AbstractArray{<:Any,N}}) where {N} = true
 
 """
-    ds9get([accesspoint,] VersionNumber)
+    ds9get(VersionNumber [, apt]; kwds...)
 
-Retrieve the version of the SAOImage/DS9 program.
+Retrieve the version of SAOImage/DS9.
+
+Optional argument `apt` is to specify another access-point to a SAOImage/DS9 server than
+the default one.
+
 """
 function ds9get(apt::AccessPoint, ::Type{VersionNumber}; kwds...)
-    str = ds9get(apt, String, "version"; kwds...)
-    return VersionNumber(split(str, " ")[end])
+    return ds9get(VersionNumber, apt; kwds...)
+end
+function ds9get(::Type{VersionNumber}, apt::AccessPoint = default_apt(); kwds...)
+    str = ds9get(String, apt, "version"; kwds...)
+    return VersionNumber(last(split(str)))
 end
 
 """
     ds9set([apt,] args...; data=nothing, throwerrors=true, quiet=false, kwds...)
 
-send a command and/or data to the SAOImage/DS9 server. Optional `apt` is to specify
-another access-point to a SAOImage/DS9 server than the default one. The sent command is
-made of `args...` converted into a single string with elements of `args...`
-separated by a single space.
+Send a single XPA *set* command to SAOImage/DS9.
+
+The command is made of arguments `args...` converted into strings and concatenated with
+separating spaces.
+
+Optional argument `apt` is to specify another access-point to a SAOImage/DS9 server than
+the default one.
 
 # Keywords
 
@@ -541,7 +551,7 @@ function ds9scan(::Type{T}, apt::AccessPoint, args...; kwds...) where {T}
     return ds9scan(T, apt, join_arguments(args); kwds...)
 end
 function ds9scan(::Type{T}, apt::AccessPoint, cmd::AbstractString; kwds...) where {T}
-    return scan(T, ds9get(apt, String, cmd; kwds...))
+    return scan(T, ds9get(String, apt, cmd; kwds...))
 end
 
 """
@@ -821,7 +831,7 @@ value.
   returns the value of the pixel, instead of its coordinates.
 
 """
-function ds9cursor(apt::Union{AbstractString,AccessPoint}=default_apt();
+function ds9cursor(apt::AccessPoint=default_apt();
                    text::AbstractString="", cancel::Bool=false,
                    coords::Symbol=:image, event::Symbol=:button)
     event ∈ (:button, :key, :any) || throw(ArgumentError(
@@ -980,7 +990,7 @@ SAOImage/DS9 frame.
   command.
 
 """
-function ds9wcs(apt::Union{AbstractString,AccessPoint} = default_apt();
+function ds9wcs(apt::AccessPoint = default_apt();
                 useheader::Bool = true)
     wcskeys = r"^(WCSAXES|C(RPIX|RVAL|TYPE|DELT|UNIT)[1-9] |(PC|CD|PV)[1-9]_[1-9]  |RADESYS|LATPOLE|LONPOLE) ="
     if useheader
