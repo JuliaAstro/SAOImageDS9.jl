@@ -476,15 +476,13 @@ end
 bitpix_of(::Any) = 0
 
 """
-    bitpix_to_type(bp) -> T
+    bitpix_to_type(bpp) -> T
 
-Return the Julia type corresponding to FITS bits-per-pixel (BITPIX) value
-`bp`.
+Return the Julia type corresponding to FITS BITPIX (bits-per-pixel) value `bpp`.
 
-yields Julia type corresponding to FITS bits-per-pixel (BITPIX) value `bp`. The type
-`Nothing` is returned if `bp` is unknown.
+# See also
 
-See also [`SAOImageDS9.bitpix_of`](@ref).
+[`SAOImageDS9.bitpix_of`](@ref).
 
 """
 bitpix_to_type(bitpix::Int) =
@@ -505,7 +503,9 @@ one of the strings (or the equivalent symbol): `"big"` for most significant byte
 `"little"` for least significant byte first or `"native"` to yield the byte order of the
 machine.
 
-See also [`ds9get`](@ref), [`ds9set`](@ref).
+# See also
+
+[`ds9get`](@ref), [`ds9set`](@ref).
 
 """
 function byte_order(endian::Symbol)
@@ -880,6 +880,20 @@ function cube_interval(; apt=default_apt())
     get_and_parse(Float64, apt, "cube interval")
 end
 function cube_interval(dt::Real; apt=default_apt())
+    XPA.set(apt, "cube interval $dt")
+end
+
+function cube(; apt=_apt())
+    get_and_parse(Int, apt, "cube")
+end
+function cube(z::Integer; apt=_apt())
+    XPA.set(apt, "cube $z")
+end
+
+function cube_interval(; apt=_apt())
+    get_and_parse(Float64, apt, "cube interval")
+end
+function cube_interval(dt::Real; apt=_apt())
     XPA.set(apt, "cube interval $dt")
 end
 

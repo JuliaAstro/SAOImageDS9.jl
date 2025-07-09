@@ -41,7 +41,6 @@ ds9scan(Vector{Int}, "fits size") # now, type-stable
 Note that `ds9get(Vector{Int}, "fits size")` would have returned the bytes of the answer
 interpreted as a vector of `Int`s.
 
-
 ### Added or changed
 
 Exported public methods:
@@ -70,6 +69,10 @@ The management of the connection to the default SAOImage/DS9 server has been enr
 Connection is automatically established if not yet done, user may interactively choose one
 of the available servers if more than one are found, the server selection can be
 customized via filter and selection functions, etc.
+
+## Version 0.2.1 (2025-06-24)
+
+- Fixes in a few `SAOImageDS9.set` commands.
 
 ## Version 0.2.0
 
