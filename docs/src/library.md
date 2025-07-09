@@ -3,22 +3,34 @@
 ## Requests to SAOImage/DS9
 
 ```@docs
-SAOImageDS9.get
-SAOImageDS9.set
+ds9get
+ds9set
 ```
 
 ## Connection
 
 ```@docs
-SAOImageDS9.connect
-SAOImageDS9.accesspoint
+ds9accesspoint
+ds9connect
+ds9disconnect
+```
+
+## Starting/quitting SAOImage/DS9 application
+
+```@docs
+ds9launch
+ds9quit
 ```
 
 
-## Drawing
+## Miscellaneaous
 
 ```@docs
-SAOImageDS9.draw
+ds9cursor
+ds9draw
+ds9message
+ds9getregions
+ds9wcs
 ```
 
 ## Utilities
