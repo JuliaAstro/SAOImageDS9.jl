@@ -661,6 +661,13 @@ function scan(::Type{T}, str::AbstractString) where {T}
     throw(ArgumentError("cannot parse $(repr(str)) as $T"))
 end
 
+function scan(::Type{Bool}, str::AbstractString)
+    s = strip(str)
+    (s == "true" || s == "yes") && return true
+    (s == "false" || s == "no") && return false
+    throw(ArgumentError("cannot parse $(repr(str)) as Bool"))
+end
+
 #--------------------------------------------------------------------------------- DRAWING -
 
 """
