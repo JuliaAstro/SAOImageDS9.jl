@@ -14,16 +14,21 @@ the `SAOImageDS9.` prefix.
 - `ds9get` replaces `SAOImageDS9.get` to send an XPA *get* request to SAOImage/DS9.
 - `ds9set` replaces `SAOImageDS9.set` to send an XPA *set* request to SAOImage/DS9.
 
-As was the case for `SAOImageDS9.get`, method `ds9get` may convert the binary data
-associated with the answer to a variety of result types but no longer *scan* or *parse*
-the answer interpreted as an ASCII string. This is the job of the new method `ds9scan`.
-This is to favor type-stable results and to more clearly indicate how is interpreted the
-answer of an XPA *get* request. For example, to retrieve a vector of bytes with the pixel
-data (there are of course better ways to retrieve the pixels as an array):
+Method `ds9get` is nearly equivalent to `SAOImageDS9.get`. `r = ds9get(T, cmd)` yields a
+result `r` of type `T` from the *get* command `cmd`. If `T` is `eltype(XPA.Reply)`, `r` is
+the bare un-processed answer and properties `r.data`, `r.message`, `r.has_message`,
+`r.has_error` etc. may be used to deal with it. For all other types `T`, the answer is
+interpreted as an ASCII string, the so-called *textual answer*. If `T` is `String`, `r` is
+the textual answer unchanged. If `T` is a *tuple or vector type*, the textual answer is
+split in words which are parsed according to the types of the entries of `T`. If `T` is a
+*scalar type*, `r` is a value of type `T` parsed in the textual answer. Without `T`
+specified, `ds9get(cmd)` is equivalent to `chomp(ds9get(String, cmd))`.
+
+As a first example, to retrieve raw answer data or un-processed answer:
 
 ```julia
-SAOImageDS9.get(Vector{UInt8}, "array") # previously
-ds9get(Vector{UInt8}, "array") # now
+SAOImageDS9.get(Vector{UInt8}, "array") # previously, answer data as bytes
+ds9get(eltype(XPA.Reply), "array") # now, fully un-processed answer
 ```
 
 As another example, to deal with an answer that is an ASCII string:
@@ -34,12 +39,9 @@ SAOImageDS9.get(String, "fits size") # previously
 ds9get(String, "fits size") # now
 # Scan the answer interpreted as an ASCII string:
 SAOImageDS9.get(Tuple{Vararg{Int}}, "fits size") # previously, not type stable
-ds9scan(NTuple{2,Int}, "fits size") # now, type-stable but require to know N
-ds9scan(Vector{Int}, "fits size") # now, type-stable
+ds9get(NTuple{2,Int}, "fits size") # now, type-stable but require to know N
+ds9get(Vector{Int}, "fits size") # now, type-stable
 ```
-
-Note that `ds9get(Vector{Int}, "fits size")` would have returned the bytes of the answer
-interpreted as a vector of `Int`s.
 
 ### Added or changed
 
@@ -55,7 +57,6 @@ Exported public methods:
 - `ds9launch` to launch the default SAOImage/DS9 application.
 - `ds9message` to display a simple message dialog in SAOImage/DS9.
 - `ds9quit` to make SAOImage/DS9 to quit.
-- `ds9scan` to send an XPA *get* request to SAOImage/DS9 and scan the textual result.
 - `ds9set` to send an XPA *set* request to SAOImage/DS9.
 - `ds9wcs` to get the FITS cards defining the WCS transform in SAOImage/DS9.
 
