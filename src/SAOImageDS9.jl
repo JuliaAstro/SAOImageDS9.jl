@@ -22,6 +22,7 @@ export ds9getregions
 export ds9launch
 export ds9message
 export ds9quit
+export ds9scan
 export ds9set
 export ds9wcs
 
@@ -43,6 +44,10 @@ using Base.Iterators: Pairs
 # FITS pixel types.
 const PIXEL_TYPES = (UInt8, Int16, Int32, Int64, Float32, Float64)
 const PixelTypes = Union{PIXEL_TYPES...,}
+
+const VectorLike{T} = isdefined(Base, :Memory) ?
+    Union{Memory{T},AbstractVector{T},Tuple{Vararg{T}}} :
+    Union{AbstractVector{T},Tuple{Vararg{T}}}
 
 #---------------------------------------------------------------------------- ACCESS-POINT -
 
@@ -213,9 +218,6 @@ The request is made of arguments `args...` converted into strings and concatenat
 separating spaces.
 
 The returned value depends on the optional arguments `T` and `dims`:
-
-FIXME: * If neither `T` nor `dims` are specified, the output is converted using an heuristic method
-FIXME:   to suitable scalar or vector.
 
 * If only `T` is specified, it can be:
 
@@ -514,8 +516,153 @@ function byte_order(endian::Symbol)
 end
 byte_order(endian::AbstractString) = byte_order(Symbol(endian))
 
-#------------------------------------------------------------------------------
-# DRAWING
+#------------------------------------------------------------------------------------ SCAN -
+
+"""
+    ds9scan(T, [apt,] args...; kwds...) -> x::T
+
+Scan for a result of type `T` in the answer to XPA *get* request `args...` to a
+SAOImage/DS9 application. `T` may be a tuple or vector type to scan for 0, 1, or more
+values. Optional `apt` is the access-point of another SAOImage/DS9 application than the
+default one.
+
+For example:
+
+```julia-repl
+julia> ds9scan(Tuple{Float64,Float64,Float64}, "iexam {\$x \$y \$value}")
+(693.0, 627.0, 64.0)
+
+```
+
+"""
+function ds9scan(::Type{T}, args...; kwds...) where {T}
+    return ds9scan(T, default_apt(), args...; kwds...)
+end
+function ds9scan(::Type{T}, apt::AccessPoint, args...; kwds...) where {T}
+    return ds9scan(T, apt, join_arguments(args); kwds...)
+end
+function ds9scan(::Type{T}, apt::AccessPoint, cmd::AbstractString; kwds...) where {T}
+    return scan(T, ds9get(apt, String, cmd; kwds...))
+end
+
+"""
+    SAOImageDS9.scan(T, str) -> x::T
+
+Scan string(s) `str` for value of type `T`.
+
+If `T` is not a tuple nor an array type and `str` is a scalar string, `scan(T, str)` is
+like `convert(T, str)` if `T <: Union{AbstractString,Symbol}` and like `parse(T, str)`
+otherwise. For example:
+
+```julia
+julia> SAOImageDS9.scan(String, "Hello world!")
+"Hello world!"
+
+julia> SAOImageDS9.scan(Symbol, "Hello world!")
+Symbol("Hello world!")
+
+julia> SAOImageDS9.scan(Int, " 33  ")
+33
+```
+
+If `T` is a tuple or array type, `str` must be an array or a tuple of strings with same
+number of dimensions as `T` (one if `T` is a tuple type). However, if `str` is a single
+string and `T` is a tuple or vector type, then `str` is split in tokens by `split(str)`
+before being scanned. For example:
+
+```julia
+julia> SAOImageDS9.scan(Tuple{Symbol,String}, "Hello world!")
+(:Hello, "world!")
+
+julia> SAOImageDS9.scan(Vector{Int}, " 12 345 6789\n")
+3-element Vector{Int64}:
+   12
+  345
+ 6789
+
+julia> SAOImageDS9.scan(Tuple{Int,Int,Float64}, " 12 345 6789\n")
+(12, 345, 6789.0)
+
+julia> SAOImageDS9.scan(Tuple{Int,Int,Float64}, ["12", "345", "6789"])
+(12, 345, 6789.0)
+```
+
+"""
+scan(::Type{T}, str::AbstractString) where {T<:Tuple} = scan(T, split(str))
+scan(::Type{T}, str::AbstractString) where {T<:AbstractVector} = scan(T, split(str))
+
+@generated function scan(::Type{T}, tokens::VectorLike{<:AbstractString}) where {T<:Tuple}
+    code = Expr[]
+    types = fieldtypes(T)
+    n = length(types)
+    push!(code, :(length(tokens) == $n || throw(DimensionMismatch(
+        string("expecting ", $n, " token(s), got ", length(tokens))))))
+    result = Expr(:tuple)
+    if n ≥ 1
+        push!(code, :(off = firstindex(tokens) - 1))
+        for (i, t) in enumerate(types)
+            push!(result.args, :(scan($t, tokens[off + $i])))
+        end
+    end
+    return quote
+        $(code...)
+        return $result
+    end
+end
+
+function scan(::Type{Vector{T}}, tokens::VectorLike{<:AbstractString}) where {T}
+    arr = Vector{T}(undef, length(tokens))
+    for (i, x) in enumerate(tokens)
+        arr[i] = scan(T, x)
+    end
+    return arr
+end
+
+if isdefined(Base, :Memory)
+    function scan(::Type{Memory{T}}, tokens::VectorLike{<:AbstractString}) where {T}
+        arr = Memory{T}(undef, length(tokens))
+        for (i, x) in enumerate(tokens)
+            arr[i] = scan(T, x)
+        end
+        return arr
+    end
+end
+
+function scan(::Type{Array{T}}, tokens::AbstractArray{<:AbstractString,N}) where {T,N}
+    return scan(Array{T,N}, tokens)
+end
+
+function scan(::Type{Array{T,N}}, tokens::AbstractArray{<:AbstractString,N}) where {T,N}
+    arr = Array{T,N}(undef, size(tokens))
+    for (i, x) in enumerate(tokens)
+        arr[i] = scan(T, x)
+    end
+    return arr
+end
+
+# A single element array/tuple of string may be scanned for a non-tuple type `T`.
+function scan(::Type{T}, tokens::VectorLike{<:AbstractString}) where {T}
+    n = length(tokens)
+    n == 1 || throw(DimensionMismatch("expecting 1 token, got $n"))
+    return scan(T, first(tokens))
+end
+
+# For non-tuple type `T` and scalar string `str`, `scan(T, str)` is like `convert(T, str)`
+# if `T <: Union{AbstractString,Symbol}` and like `parse(T, str)` otherwise.
+scan(::Type{T}, str::T) where {T<:AbstractString} = str
+scan(::Type{T}, str::AbstractString) where {T<:AbstractString} = T(str)::T
+scan(::Type{Symbol}, str::AbstractString) = Symbol(str)
+function scan(::Type{T}, str::AbstractString) where {T}
+    try
+        val = tryparse(T, str)
+        isnothing(val) || return val
+    catch ex
+        throw(ex isa MethodError ? ArgumentError("no method to parse string as $T") : ex)
+    end
+    throw(ArgumentError("cannot parse $(repr(str)) as $T"))
+end
+
+#--------------------------------------------------------------------------------- DRAWING -
 
 """
     ds9draw([apt,] args...; kwds...)
