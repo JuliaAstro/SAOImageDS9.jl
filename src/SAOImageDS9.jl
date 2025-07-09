@@ -869,34 +869,6 @@ function ds9cursor(apt::AccessPoint=default_apt();
     end
 end
 
-function cube(; apt=default_apt())
-    get_and_parse(Int, apt, "cube")
-end
-function cube(z::Integer; apt=default_apt())
-    XPA.set(apt, "cube $z")
-end
-
-function cube_interval(; apt=default_apt())
-    get_and_parse(Float64, apt, "cube interval")
-end
-function cube_interval(dt::Real; apt=default_apt())
-    XPA.set(apt, "cube interval $dt")
-end
-
-function cube(; apt=_apt())
-    get_and_parse(Int, apt, "cube")
-end
-function cube(z::Integer; apt=_apt())
-    XPA.set(apt, "cube $z")
-end
-
-function cube_interval(; apt=_apt())
-    get_and_parse(Float64, apt, "cube interval")
-end
-function cube_interval(dt::Real; apt=_apt())
-    XPA.set(apt, "cube interval $dt")
-end
-
 #------------------------------------------------------------------------------
 # LIMITS
 
