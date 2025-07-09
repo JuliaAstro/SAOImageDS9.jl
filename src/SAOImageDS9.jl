@@ -364,7 +364,9 @@ the default one.
 
 * `kwds...` are other keywords for `XPA.set`.
 
-See also: [`ds9connect`](@ref) and [`ds9get`](@ref).
+# See also
+
+[`ds9connect`](@ref) and [`ds9get`](@ref).
 
 """
 ds9set(args...; kwds...) = ds9set(default_apt(), args...; kwds...)
@@ -397,7 +399,7 @@ function ds9set(apt::AccessPoint, cmd::AbstractString;
 end
 
 """
-    ds9set([apt,] arr; mask=false, new=false, endian=:native, kwds...)
+    ds9set([apt,] arr; mask=false, frame=nothing, endian=:native, kwds...)
 
 set the contents of an SAOImage/DS9 frame to be array `arr`. Optional `apt` is to specify
 another access-point to a SAOImage/DS9 server than the default one.
@@ -415,7 +417,7 @@ another access-point to a SAOImage/DS9 server than the default one.
 """
 function ds9set(apt::AccessPoint, arr::AbstractArray{T,N};
                 endian::Symbol=:native, mask::Bool=false,
-                frame=nothing, kwds...) where {T<:PixelTypes,N}
+                frame::Union{Nothing,Integer,Symbol}=nothing, kwds...) where {T<:PixelTypes,N}
     args = String["array"]
     if frame !== nothing
         mask && throw(ArgumentError("keyword `mask` must be false if keyword `frame` is something"))
@@ -530,16 +532,33 @@ byte_order(endian::AbstractString) = byte_order(Symbol(endian))
 """
     ds9scan(T, [apt,] args...; kwds...) -> x::T
 
-Scan for a result of type `T` in the answer to XPA *get* request `args...` to a
-SAOImage/DS9 application. `T` may be a tuple or vector type to scan for 0, 1, or more
-values. Optional `apt` is the access-point of another SAOImage/DS9 application than the
-default one.
+Scan for value(s) in the answer to XPA *get* command to SAOImage/DS9 interpreted as an
+ASCII string.
+
+Type `T` is the type of the expected result. `T` may be a tuple or vector type to scan for
+0, 1, or more values. If `T` is a tuple or a vector type, the answer to the get command is
+split in words.
+
+The command is made of arguments `args...` converted into strings and concatenated with
+separating spaces.
+
+Optional argument `apt` is to specify another access-point to a SAOImage/DS9 server than
+the default one.
 
 For example:
 
 ```julia-repl
 julia> ds9scan(Tuple{Float64,Float64,Float64}, "iexam {\$x \$y \$value}")
 (693.0, 627.0, 64.0)
+
+julia> ds9scan(Tuple{Int,Int}, "fits size")
+(1024, 1024)
+
+julia> ds9scan(Bool, "frame has amplifier")
+false
+
+julia> ds9scan(Tuple{String,VersionNumber}, "version")
+("ds9-8.7b1", v"8.7.0-b1")
 
 ```
 
@@ -1024,7 +1043,7 @@ where `shape` is a symbol indicating shape of the region, `coordinates` is an
 array of coordinates, and `properties` is a dictionary with the properties of
 the region. Note that the code parses as much as possible the properties:
 therefore, the returned dictionary can include a variety of different value
-types, depending on the keyword. The followin rules applies
+types, depending on the keyword. The following rules applies
 
 - the global properties are always _merged_ to the more specific region
   properties;
