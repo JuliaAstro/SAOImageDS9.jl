@@ -665,7 +665,7 @@ end
 """
     ds9draw([apt,] args...; kwds...)
 
-Draws something in SAOImage/DS9 application.
+draws something in SAOImage/DS9 application.
 
 The specific operation depends on the type of the arguments.
 
@@ -677,7 +677,7 @@ ds9draw(apt::AccessPoint, ::T; kwds...) where {T} = error("unexpected type of ar
 """
     ds9draw([apt,] img::AbstractMatrix; kwds...)
 
-Displays image `img` (a 2-dimensional Julia array) in SAOImage/DS9.
+displays image `img` (a 2-dimensional Julia array) in SAOImage/DS9.
 
 # Keywords
 - `frame`: to select a given frame number, or `:new` to draw image in a new frame;
@@ -704,7 +704,7 @@ end
 # command (given by `XPA.SZ_LINE`).
 
 """
-    ds9draw([accesspoint,] pnt; kwds...)
+    ds9draw([apt,] pnt; kwds...)
 
 Draw `pnt` as point(s) in SAOImage/DS9.
 
@@ -720,7 +720,7 @@ function ds9draw(apt::AccessPoint, A::Union{Tuple{Vararg{Point}},
 end
 
 """
-    ds9draw([accesspoint,] box; kwds...)
+    ds9draw([apt,] box; kwds...)
 
 Draws `box` as rectangle(s) in SAOImage/DS9.
 
@@ -805,9 +805,8 @@ the default one.
 - `event` is the type of event to capture the cursor position, one of `:button`, `:key`, or
   `:any`.
 
-- `coords` is the type of coordinates to return, one of `:data`, `:image`, `:physical`,
-  `:fk5`, or `:galactic`. If set to `:data`, this function returns the value of the pixel,
-  instead of its coordinates.
+- `coords` is the type of coordinates to return. If set to `:data`, `nothing`, or
+  `"data"`, this function returns the value of the pixel, instead of its coordinates.
 
 - `text` specifies a message to be displayed in a message dialog first.
 
@@ -820,43 +819,51 @@ the default one.
 
 """
 function ds9cursor(apt::AccessPoint=default_apt();
+                   debug::Bool=false,
                    text::AbstractString="", cancel::Bool=false,
-                   coords::Symbol=:image, event::Symbol=:button)
+                   coords=:image, event::Symbol=:button)
     event ∈ (:button, :key, :any) || throw(ArgumentError(
         "unknown event type `$(repr(event))`, must be one of `:button`, `:key`, or `:any`"))
-    coords ∈ (:data, :image, :physical, :fk5, :galactic) || throw(ArgumentError(
-        "unknown coordinates type `$(repr(coords))`, must be one of `:data`, `:image`, `:physical`, `:fk5`, or `:galactic`"))
     if isempty(text)
         XPA.set(apt, "raise")
     else
         ds9message(apt, text; cancel=cancel) || return nothing
     end
-    cmd = string("iexam ", event, (coords === :data ? " " : " coordinate "), coords)
+    n = coords ∈ (nothing, :data, "data") ? 1 : 2 # number of values to parse
+    cmd = string("iexam ", event, (n == 1 ? " " : " coordinate "), coords)
+    debug && @info "Command: $cmd"
     words = split(XPA.get(String, apt, cmd))
+    debug && @info "Answer: $(join(words, ' '))"
     off = event === :button ? 0 : 1
-    n = coords === :data ? 1 : 2
-    length(words) == n + off || throw(AssertionError(
-        "expected answer with $(n + off) words, got $(length(words))"))
+    # Number of returned words is `n + off` if everything went fine or `off` (that is
+    # nothing if `event = :button` and just the key otherwise) if the required coordinate
+    # system is not available. Any other word count is an error.
+    success = length(words) == n + off
+    success || length(words) == off || throw(AssertionError(
+        "expected answer with $(n + off) words, got $(length(words)), check coordinates name"))
     key = event === :button ? "<1>" : String(words[1])
     T = Float64
+    bad = T(NaN)
     if n == 1
-        return (key, parse(T, words[1 + off]))
+        val = success ? parse(T, words[1 + off]) : bad
+        return (key, val)
     else
-        return (key, parse(T, words[1 + off]), parse(T, words[2 + off]))
+        x = success ? parse(T, words[1 + off]) : bad
+        y = success ? parse(T, words[2 + off]) : bad
+        return (key, x, y)
     end
 end
 
-#------------------------------------------------------------------------------
-# LIMITS
+#---------------------------------------------------------------------------------- LIMITS -
 
 """
     SAOImageDS9.limits(A, cmin=nothing, cmax=nothing) -> (lo, hi)
 
 yields the clipping limits of values in array `A`. The result is a 2-tuple of double
 precision floats `(lo,hi)`. If `cmin` is `nothing`, `lo` is the minimal finite value found
-in `A` and converted to `Cdouble`; otherwise `lo = Cdouble(cmin)`. If `cmax` is `nothing`,
-`hi` is the maximal finite value found in `A` and converted to `Cdouble`; otherwise `hi =
-Cdouble(cmax)`.
+in `A` and converted to `Float64`; otherwise `lo = Float64(cmin)`. If `cmax` is `nothing`,
+`hi` is the maximal finite value found in `A` and converted to `Float64`; otherwise `hi =
+Float64(cmax)`.
 
 """
 limits(A::AbstractArray{<:Real}, ::Nothing, ::Nothing) =
@@ -872,48 +879,51 @@ limits(A::AbstractArray{<:Real}, cmin::Real, cmax::Real) =
     to_limits(cmin, cmax)
 
 to_limits(c::Tuple{Real,Real}) = to_limits(c...)
-to_limits(cmin::Cdouble, cmax::Cdouble) = (cmin, cmax)
-to_limits(cmin::Real, cmax::Real) = to_limits(convert(Cdouble, cmin),
-                                              convert(Cdouble, cmax))
+to_limits(cmin::Float64, cmax::Float64) = (cmin, cmax)
+to_limits(cmin::Real, cmax::Real) = to_limits(convert(Float64, cmin),
+                                              convert(Float64, cmax))
 
 """
     finite_extrema(A) -> (vmin, vmax)
 
-yields the minimum and maximum finite values in array `A`.  The result is such
-that `vmin ≤ vmax` (both values being finite) unless there are no finite values
-in `A` in which case `vmin > vmax`.
+yields the minimum and maximum finite values in array `A`. The result is such that `vmin ≤
+vmax` (both values being finite) unless there are no finite values in `A` in which case
+`vmin > vmax`.
+
 """
 finite_extrema(A::AbstractArray{<:Real}) = valid_extrema(isfinite, A)
 
 """
     finite_minimum(A) -> vmin
 
-yields the minimum finite value in array `A`.  The result is never a NaN but
-may be `typemax(eltype(A))` if there are no finite values in `A`.
+yields the minimum finite value in array `A`. The result is never a NaN but may be
+`typemax(eltype(A))` if there are no finite values in `A`.
+
 """
 finite_minimum(A::AbstractArray{<:Real}) = valid_minimum(isfinite, A)
 
 """
     finite_maximum(A) -> vmax
 
-yields the maximum finite value in array `A`.  The result is never a NaN but
-may be `typemin(eltype(A))` if there are no finite values in `A`.
+yields the maximum finite value in array `A`. The result is never a NaN but may be
+`typemin(eltype(A))` if there are no finite values in `A`.
+
 """
 finite_maximum(A::AbstractArray{<:Real}) = valid_maximum(isfinite, A)
 
 """
     valid_extrema(pred, A) -> (vmin, vmax)
 
-yields the minimum and maximum valid values in array `A`.  Valid values are
-those for which predicate `pred` yields `true`.  The result is such that `vmin
-≤ vmax` (both values being valid) unless there are no valid values in `A` in
-which case `vmin > vmax`.  The predicate function is assumed to take care of
-NaN's.
+yields the minimum and maximum valid values in array `A`. Valid values are those for which
+predicate `pred` yields `true`. The result is such that `vmin ≤ vmax` (both values being
+valid) unless there are no valid values in `A` in which case `vmin > vmax`. The predicate
+function is assumed to take care of NaN's.
+
 """
 function valid_extrema(pred, A::AbstractArray{T}) where {T}
     vmin = typemax(T)
     vmax = typemin(T)
-    @inbounds @simd for i in eachindex(A)
+    @inbounds for i in eachindex(A) # not @fastmath to honor NaN's behavior
         val = A[i]
         vmin = ifelse(pred(val)&(val < vmin), val, vmin)
         vmax = ifelse(pred(val)&(val > vmax), val, vmax)
@@ -932,7 +942,7 @@ function is assumed to take care of NaN's.
 """
 function valid_minimum(pred, A::AbstractArray{T}) where {T}
     vmin = typemax(T)
-    @inbounds @simd for i in eachindex(A)
+    @inbounds for i in eachindex(A) # not @fastmath to honor NaN's behavior
         val = A[i]
         vmin = ifelse(pred(val)&(val < vmin), val, vmin)
     end
@@ -943,14 +953,14 @@ valid_minimum(::typeof(isfinite), A::AbstractRange{<:Real}) = minimum(A)
 """
     valid_maximum(A) -> vmax
 
-yields the maximum valid value in array `A`.  Valid values are those for which
-predicate `pred` yields `true`.  The result is a valid value but may be
-`typemin(eltype(A))` if there are no valid values in `A`.  The predicate
-function is assumed to take care of NaN's.
+yields the maximum valid value in array `A`. Valid values are those for which predicate
+`pred` yields `true`. The result is a valid value but may be `typemin(eltype(A))` if there
+are no valid values in `A`. The predicate function is assumed to take care of NaN's.
+
 """
 function valid_maximum(pred, A::AbstractArray{T}) where {T}
     vmax = typemin(T)
-    @inbounds @simd for i in eachindex(A)
+    @inbounds for i in eachindex(A) # not @fastmath to honor NaN's behavior
         val = A[i]
         vmax = ifelse(pred(val)&(val > vmax), val, vmax)
     end
@@ -962,8 +972,7 @@ valid_maximum(::typeof(isfinite), A::AbstractRange{<:Real}) = maximum(A)
 """
     ds9wcs([apt]; useheader=true)
 
-Return the cards of the FITS header defining the WCS transformation of current
-SAOImage/DS9 frame.
+returns the FITS header cards defining the WCS transformation in SAOImage/DS9 frame.
 
 # Keywords
 
@@ -989,15 +998,15 @@ function ds9wcs(apt::AccessPoint = default_apt();
 end
 
 """
-    ds9getregions([access_point,] name=""; coords=:image, selected=false)
+    ds9getregions([apt,] name=""; coords=:image, selected=false)
 
-Return the regions defined in the DS9 window.
+returns the regions defined in SAOImage/DS9 frame.
 
-The optional argument `name` is the name of the group of regions to extract.
-If `name` is an empty string, all regions are extracted.
+The optional argument `name` is the name of the group of regions to extract. All regions
+are extracted if `name` is an empty string.
 
-# Keyword Arguments
-- `ident`: the identifier of the DS9 window.
+# Keywords
+
 - `coords`: the type of coordinates to return: can be `:image`, `:physical`,
   `:fk5`, `:galactic`
 
@@ -1019,7 +1028,13 @@ types, depending on the keyword. The following rules applies
 - properties consisting of multiple elements, such as `:dash`, `:line`, and
   `:point` are returned as tuples.
 """
-function ds9getregions(apt::AccessPoint, name::String; coords=:image, selected=false)
+ds9getregions(name::AbstractString=""; kwds...) =
+    ds9getregions(default_apt(), name; kwds...)
+ds9getregions(name::AbstractString, apt::AccessPoint; kwds...) =
+    ds9getregions(apt, name; kwds...)
+
+function ds9getregions(apt::AccessPoint, name::AbstractString;
+                       coords=:image, selected=false)
     function parsevalue(prop, value)
         r = tryparse(Int, value)
         if r === nothing
@@ -1094,7 +1109,6 @@ function ds9getregions(apt::AccessPoint, name::String; coords=:image, selected=f
     end
     return regions
 end
-@inline ds9getregions(name::String=""; kwds...) = ds9getregions(default_apt(), name; kwds...)
 
 function __init__()
     ds9disconnect()
