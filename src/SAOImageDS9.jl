@@ -791,26 +791,32 @@ function ds9message(apt::AccessPoint, msg::AbstractString; cancel::Bool = false)
 end
 
 """
-    ds9cursor([apt]; text="", cancel=false, coords=:image, event=:button)
+    ds9cursor([apt]; coords=:image, event=:button, text="", cancel=false)
 
-Returns the position of the mouse cursor in SAOImage/DS9 interactively chosen by the user.
-The function returns the tuple `(key, x, y)` or `(key, value)`, where `key` is the key
-pressed, `(x, y)` are the coordinates of the point selected, and `value` the corresponding
-value.
+returns the position of the mouse cursor in SAOImage/DS9 interactively chosen by the user
+as a tuple `(key, x, y)` or `(key, value)`, where `key` is the key pressed, `(x, y)` are
+the coordinates of the selected position, and `value` the corresponding pixel value.
+
+Optional argument `apt` is to specify another access-point to a SAOImage/DS9 server than
+the default one.
 
 # Keywords
-
-- `text` specifies a message to be displayed in a dialog first.
-
-- `cancel` specifies whether the dialog message will let the user cancel the operation (in
-  this case this function returns `nothing`).
 
 - `event` is the type of event to capture the cursor position, one of `:button`, `:key`, or
   `:any`.
 
 - `coords` is the type of coordinates to return, one of `:data`, `:image`, `:physical`,
-  `:fk5`, or `galactic` (as a string or as a symbol). If set to `data`, this function
-  returns the value of the pixel, instead of its coordinates.
+  `:fk5`, or `:galactic`. If set to `:data`, this function returns the value of the pixel,
+  instead of its coordinates.
+
+- `text` specifies a message to be displayed in a message dialog first.
+
+- `cancel` specifies whether the user may cancel the operation in the dialog message, in
+  which case this function returns `nothing`.
+
+# See also
+
+[`ds9get`](@ref) and [`ds9message`](@ref).
 
 """
 function ds9cursor(apt::AccessPoint=default_apt();
@@ -818,6 +824,8 @@ function ds9cursor(apt::AccessPoint=default_apt();
                    coords::Symbol=:image, event::Symbol=:button)
     event ∈ (:button, :key, :any) || throw(ArgumentError(
         "unknown event type `$(repr(event))`, must be one of `:button`, `:key`, or `:any`"))
+    coords ∈ (:data, :image, :physical, :fk5, :galactic) || throw(ArgumentError(
+        "unknown coordinates type `$(repr(coords))`, must be one of `:data`, `:image`, `:physical`, `:fk5`, or `:galactic`"))
     if isempty(text)
         XPA.set(apt, "raise")
     else
@@ -825,10 +833,16 @@ function ds9cursor(apt::AccessPoint=default_apt();
     end
     cmd = string("iexam ", event, (coords === :data ? " " : " coordinate "), coords)
     words = split(XPA.get(String, apt, cmd))
-    if event === :button
-        return ("<1>", parse.(Float64, words)...)
+    off = event === :button ? 0 : 1
+    n = coords === :data ? 1 : 2
+    length(words) == n + off || throw(AssertionError(
+        "expected answer with $(n + off) words, got $(length(words))"))
+    key = event === :button ? "<1>" : String(words[1])
+    T = Float64
+    if n == 1
+        return (key, parse(T, words[1 + off]))
     else
-        return (words[1], parse.(Float64, @view words[2:end])...)
+        return (key, parse(T, words[1 + off]), parse(T, words[2 + off]))
     end
 end
 
