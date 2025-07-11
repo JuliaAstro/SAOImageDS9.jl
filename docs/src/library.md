@@ -27,6 +27,7 @@ ds9quit
 
 ```@docs
 ds9cursor
+ds9iexam
 ds9draw
 ds9message
 ds9getregions
