@@ -54,6 +54,7 @@ Exported public methods:
 - `ds9draw` to draw something in SAOImage/DS9.
 - `ds9get` to send an XPA *get* request to SAOImage/DS9.
 - `ds9getregions` to get regions defined in SAOImage/DS9.
+- `ds9iexam` like `ds9cursor` but, possibly, for other coordinate systems than `image`.
 - `ds9launch` to launch the default SAOImage/DS9 application.
 - `ds9message` to display a simple message dialog in SAOImage/DS9.
 - `ds9quit` to make SAOImage/DS9 to quit.

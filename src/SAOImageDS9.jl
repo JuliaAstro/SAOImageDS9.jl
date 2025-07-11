@@ -19,6 +19,7 @@ export ds9disconnect
 export ds9draw
 export ds9get
 export ds9getregions
+export ds9iexam
 export ds9launch
 export ds9message
 export ds9quit
@@ -791,11 +792,16 @@ function ds9message(apt::AccessPoint, msg::AbstractString; cancel::Bool = false)
 end
 
 """
-    ds9cursor([apt]; coords=:image, event=:button, text="", cancel=false)
+    ds9iexam([apt], coordsys=:image; event=:button, text="", cancel=false) -> (key, x, y)
+    ds9iexam([apt], :value;          event=:button, text="", cancel=false) -> (key, val)
 
-returns the position of the mouse cursor in SAOImage/DS9 interactively chosen by the user
-as a tuple `(key, x, y)` or `(key, value)`, where `key` is the key pressed, `(x, y)` are
-the coordinates of the selected position, and `value` the corresponding pixel value.
+return the position or value at the mouse cursor in SAOImage/DS9 interactively chosen by
+the user.
+
+If argument `coordsys` is `:value` or `"value"`, this function returns `(key, val)` with
+`key` the key pressed or button clicked and `val` the pixel value (`NaN` if selected
+position is outside image area). Otherwise, this function returns `(key, x, y)` with `(x,
+y)` the coordinates of the selected position in coordinate system specified by `coordsys`.
 
 Optional argument `apt` is to specify another access-point to a SAOImage/DS9 server than
 the default one.
@@ -805,23 +811,21 @@ the default one.
 - `event` is the type of event to capture the cursor position, one of `:button`, `:key`, or
   `:any`.
 
-- `coords` is the type of coordinates to return. If set to `:data`, `nothing`, or
-  `"data"`, this function returns the value of the pixel, instead of its coordinates.
-
-- `text` specifies a message to be displayed in a message dialog first.
+- `text`, if non-empty, specifies a message to be displayed in a message dialog first.
 
 - `cancel` specifies whether the user may cancel the operation in the dialog message, in
   which case this function returns `nothing`.
 
 # See also
 
+[`ds9cursor`](@ref) to retrieve `(key, x, y, val)` in `image` coordinate system.
+
 [`ds9get`](@ref) and [`ds9message`](@ref).
 
 """
-function ds9cursor(apt::AccessPoint=default_apt();
-                   debug::Bool=false,
-                   text::AbstractString="", cancel::Bool=false,
-                   coords=:image, event::Symbol=:button)
+ds9iexam(apt::AccessPoint; kwds...) = ds9iexam(:image, apt; kwds...)
+function ds9iexam(coordsys=:image, apt::AccessPoint=default_apt(); event::Symbol=:button,
+                  text::AbstractString="", cancel::Bool=false, debug::Bool=false)
     event ∈ (:button, :key, :any) || throw(ArgumentError(
         "unknown event type `$(repr(event))`, must be one of `:button`, `:key`, or `:any`"))
     if isempty(text)
@@ -829,30 +833,79 @@ function ds9cursor(apt::AccessPoint=default_apt();
     else
         ds9message(apt, text; cancel=cancel) || return nothing
     end
-    n = coords ∈ (nothing, :data, "data") ? 1 : 2 # number of values to parse
-    cmd = string("iexam ", event, (n == 1 ? " " : " coordinate "), coords)
+    n = coordsys ∈ (:value, "value") ? 2 : 3 # number of returned tokens
+    cmd = n == 2 ? "iexam $event {\$value}" : "iexam $event coordinate $coordsys"
     debug && @info "Command: $cmd"
-    words = split(XPA.get(String, apt, cmd))
-    debug && @info "Answer: $(join(words, ' '))"
-    off = event === :button ? 0 : 1
-    # Number of returned words is `n + off` if everything went fine or `off` (that is
-    # nothing if `event = :button` and just the key otherwise) if the required coordinate
-    # system is not available. Any other word count is an error.
-    success = length(words) == n + off
-    success || length(words) == off || throw(AssertionError(
-        "expected answer with $(n + off) words, got $(length(words)), check coordinates name"))
-    key = event === :button ? "<1>" : String(words[1])
-    T = Float64
-    bad = T(NaN)
-    if n == 1
-        val = success ? parse(T, words[1 + off]) : bad
+    str = ds9get(apt, cmd) # get result without trailing newline
+    debug && @info "Answer: $(repr(str))"
+    words = split(str, ' '; keepempty=true)
+    length(words) ≥ 1 || return nothing
+    key = (event === :button && isempty(words[1])) ? "<1>" : String(words[1])
+    if n == 2
+        val = scan_float(words, 2)
         return (key, val)
     else
-        x = success ? parse(T, words[1 + off]) : bad
-        y = success ? parse(T, words[2 + off]) : bad
+        x = scan_float(words, 2)
+        y = scan_float(words, 3)
         return (key, x, y)
     end
 end
+
+"""
+    ds9cursor([apt]; event=:button, text="", cancel=false) -> (key, x, y, val)
+
+returns the position of the mouse cursor in SAOImage/DS9 interactively chosen by the user
+as a 4-tuple `(key, x, y, val)` where `key` is the key pressed or button clicked, `(x, y)`
+are the image coordinates of the selected position, and `val` the corresponding pixel
+value. Coordinates `x` and `y` may be `0` and `val` may be `NaN` if user selects a
+position outside the image area or in an empty frame.
+
+In SAOImage/DS9 image coordinates are similar to Julia fractional indices in ordinary
+arrays. Hence, if the image pixels are also stored by `A` (an `Array`) in Julia, the
+nearest position corresponds to `A[i,j]` with `(i,j) = round.(Int,(x,y))`.
+
+Optional argument `apt` is to specify another access-point to a SAOImage/DS9 server than
+the default one.
+
+# Keywords
+
+- `event` is the type of event to capture the cursor position, one of `:button`, `:key`, or
+  `:any`.
+
+- `text`, if non-empty, specifies a message to be displayed in a message dialog first.
+
+- `cancel` specifies whether the user may cancel the operation in the dialog message, in
+  which case this function returns `nothing`.
+
+# See also
+
+[`ds9iexam`](@ref) to retrieve the coordinate in another system than `image`.
+
+[`ds9get`](@ref) and [`ds9message`](@ref).
+
+"""
+function ds9cursor(apt::AccessPoint=default_apt(); event::Symbol=:button,
+                   text::AbstractString="", cancel::Bool=false)
+    event ∈ (:button, :key, :any) || throw(ArgumentError(
+        "unknown event type `$(repr(event))`, must be one of `:button`, `:key`, or `:any`"))
+    if isempty(text)
+        XPA.set(apt, "raise")
+    else
+        ds9message(apt, text; cancel=cancel) || return nothing
+    end
+    cmd = "iexam $event {\$x \$y \$value}"
+    words = split(ds9get(apt, cmd), ' '; keepempty=true)
+    length(words) ≥ 1 || return nothing
+    key = (event === :button && isempty(words[1])) ? "<1>" : String(words[1])
+    x = scan_float(words, 2)
+    y = scan_float(words, 3)
+    val = scan_float(words, 4)
+    return (key, x, y, val)
+end
+
+scan_float(s::AbstractString) = isempty(s) ? NaN : parse(typeof(NaN), s)
+scan_float(s::AbstractVector{<:AbstractString}, i::Integer) =
+    checkbounds(Bool, s, i) ? scan_float(@inbounds s[i]) : NaN
 
 #---------------------------------------------------------------------------------- LIMITS -
 
